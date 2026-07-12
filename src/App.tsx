@@ -1,0 +1,115 @@
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+
+import type { StudiesService } from "@/application/services/studies-service";
+import type { AnimalsService } from "@/application/services/animals-service";
+import type { ObservationsService } from "@/application/services/observations-service";
+import type { TimelineEventsService } from "@/application/services/timeline-events-service";
+import type { ProtocolTemplateService } from "@/application/services/protocol-template-service";
+import type { MriSessionService } from "@/application/services/mri-session-service";
+import type { ResearchAssetService } from "@/application/services/research-asset-service";
+import type { SearchService } from "@/application/services/search-service";
+import type { StorageService } from "@/application/services/storage-service";
+import type { MriComparisonService } from "@/application/services/mri-comparison-service";
+import type { DashboardService } from "@/application/services/dashboard-service";
+import { ThemeProvider } from "@/shared/hooks/use-theme";
+import { AppShell } from "@/presentation/layouts/app-shell";
+import { DashboardServiceProvider } from "@/presentation/features/dashboard/dashboard-service-context";
+import { DashboardPage } from "@/presentation/features/dashboard/dashboard-page";
+import { StudiesPage } from "@/presentation/features/studies/studies-page";
+import { StudyCreatePage } from "@/presentation/features/studies/study-create-page";
+import { StudyDetailPage } from "@/presentation/features/studies/study-detail-page";
+import { AnimalDetailPage } from "@/presentation/features/animals/animal-detail-page";
+import { StudiesServiceProvider } from "@/presentation/features/studies/studies-service-context";
+import { AnimalsServiceProvider } from "@/presentation/features/animals/animals-service-context";
+import { ObservationsServiceProvider } from "@/presentation/features/observations/observations-service-context";
+import { TimelineEventsServiceProvider } from "@/presentation/features/timeline/timeline-events-service-context";
+import { ProtocolServiceProvider } from "@/presentation/features/protocols/protocol-service-context";
+import { MriSessionServiceProvider } from "@/presentation/features/mri/mri-session-service-context";
+import { ResearchAssetServiceProvider } from "@/presentation/features/assets/research-asset-service-context";
+import { SearchServiceProvider } from "@/presentation/features/search/search-service-context";
+import { SearchPage } from "@/presentation/features/search/search-page";
+import { StorageServiceProvider } from "@/presentation/features/storage/storage-service-context";
+import { MriComparisonServiceProvider } from "@/presentation/features/mri-comparison/mri-comparison-service-context";
+import { MriComparisonPage } from "@/presentation/features/mri-comparison/mri-comparison-page";
+import { SettingsPage } from "@/presentation/features/settings/settings-page";
+import { NotFoundPage } from "@/presentation/features/not-found/not-found-page";
+
+/**
+ * Application root. Providers wrap the router, which nests every screen inside
+ * the shared app shell. Services are injected here (built in the composition
+ * root) so screens depend on the service interfaces, not on SQLite.
+ */
+export function App({
+  studiesService,
+  animalsService,
+  observationsService,
+  timelineEventsService,
+  protocolTemplatesService,
+  mriSessionsService,
+  researchAssetsService,
+  searchService,
+  storageService,
+  mriComparisonService,
+  dashboardService,
+}: {
+  studiesService: StudiesService;
+  animalsService: AnimalsService;
+  observationsService: ObservationsService;
+  timelineEventsService: TimelineEventsService;
+  protocolTemplatesService: ProtocolTemplateService;
+  mriSessionsService: MriSessionService;
+  researchAssetsService: ResearchAssetService;
+  searchService: SearchService;
+  storageService: StorageService;
+  mriComparisonService: MriComparisonService;
+  dashboardService: DashboardService;
+}) {
+  return (
+    <ThemeProvider>
+      <StudiesServiceProvider service={studiesService}>
+        <AnimalsServiceProvider service={animalsService}>
+          <ObservationsServiceProvider service={observationsService}>
+            <TimelineEventsServiceProvider service={timelineEventsService}>
+              <ProtocolServiceProvider service={protocolTemplatesService}>
+                <MriSessionServiceProvider service={mriSessionsService}>
+                  <ResearchAssetServiceProvider service={researchAssetsService}>
+                  <SearchServiceProvider service={searchService}>
+                  <StorageServiceProvider service={storageService}>
+                  <MriComparisonServiceProvider service={mriComparisonService}>
+                  <DashboardServiceProvider service={dashboardService}>
+                  <BrowserRouter>
+                  <Routes>
+                    <Route element={<AppShell />}>
+                      <Route index element={<DashboardPage />} />
+                      <Route path="studies" element={<StudiesPage />} />
+                      <Route path="studies/new" element={<StudyCreatePage />} />
+                      <Route path="studies/:id" element={<StudyDetailPage />} />
+                      <Route
+                        path="studies/:studyId/animals/:animalId"
+                        element={<AnimalDetailPage />}
+                      />
+                      <Route path="search" element={<SearchPage />} />
+                      <Route path="compare" element={<MriComparisonPage />} />
+                      <Route path="settings" element={<SettingsPage />} />
+                      <Route path="404" element={<NotFoundPage />} />
+                      <Route
+                        path="*"
+                        element={<Navigate to="/404" replace />}
+                      />
+                    </Route>
+                  </Routes>
+                  </BrowserRouter>
+                  </DashboardServiceProvider>
+                  </MriComparisonServiceProvider>
+                  </StorageServiceProvider>
+                  </SearchServiceProvider>
+                  </ResearchAssetServiceProvider>
+                </MriSessionServiceProvider>
+              </ProtocolServiceProvider>
+            </TimelineEventsServiceProvider>
+          </ObservationsServiceProvider>
+        </AnimalsServiceProvider>
+      </StudiesServiceProvider>
+    </ThemeProvider>
+  );
+}

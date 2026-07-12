@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+*.local
+
+# Tauri / Rust
+src-tauri/target/
+src-tauri/gen/
+
+# Editor / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Local databases (never commit research data)
+*.db
+*.sqlite
+*.sqlite3
+
+# Internal / personal working documents (kept local, not published)
+PROJECT_MEMORY.md
+PRODUCT_REQUIREMENTS.md
+CONVERSATION_AND_CODEBASE_HANDOFF.txt
+initial_prompt.txt
+
+# Generated sample/test data (regenerate with scripts/) + personal dev launcher
+sample-data/
+run-app.cmd
