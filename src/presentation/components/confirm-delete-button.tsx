@@ -1,5 +1,6 @@
 import {
   forwardRef,
+  useCallback,
   useEffect,
   useImperativeHandle,
   useRef,
@@ -11,6 +12,7 @@ import { Trash2 } from "lucide-react";
 import { Button } from "@/presentation/components/ui/button";
 import { Input } from "@/presentation/components/ui/input";
 import { toUserMessage } from "@/presentation/lib/error-message";
+import { useSettings } from "@/shared/hooks/use-settings";
 
 /** Imperative handle so a parent (e.g. a context-menu "Delete") can open the same
  *  confirmation dialog this button already owns — reusing one delete flow. */
@@ -52,13 +54,28 @@ export const ConfirmDeleteButton = forwardRef<
   },
   ref,
 ) {
+  const { settings } = useSettings();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [typed, setTyped] = useState("");
   const [error, setError] = useState<string | null>(null);
   const cancelRef = useRef<HTMLButtonElement | null>(null);
 
-  useImperativeHandle(ref, () => ({ open: () => setOpen(true) }), []);
+  // Keep an always-current confirm() for the trigger/imperative paths without
+  // re-creating the handle on every render.
+  const confirmRef = useRef<() => Promise<void>>(async () => {});
+
+  // Low-stakes deletes may skip the dialog when the researcher has turned off
+  // "confirm before delete". High-stakes deletes (a typed confirmPhrase, e.g. a
+  // whole study) ALWAYS confirm, regardless of the setting.
+  const skipConfirm = !settings.confirmBeforeDelete && !confirmPhrase;
+
+  const requestDelete = useCallback(() => {
+    if (skipConfirm) void confirmRef.current();
+    else setOpen(true);
+  }, [skipConfirm]);
+
+  useImperativeHandle(ref, () => ({ open: requestDelete }), [requestDelete]);
 
   useEffect(() => {
     if (!open) return;
@@ -90,8 +107,11 @@ export const ConfirmDeleteButton = forwardRef<
     } catch (e) {
       setError(toUserMessage(e, "We couldn't delete that. Please try again."));
       setBusy(false);
+      // Surface the failure even when the delete ran without the dialog open.
+      setOpen(true);
     }
   }
+  confirmRef.current = confirm;
 
   return (
     <>
@@ -99,7 +119,7 @@ export const ConfirmDeleteButton = forwardRef<
         type="button"
         variant={iconOnly ? "ghost" : "outline"}
         size={size}
-        onClick={() => setOpen(true)}
+        onClick={requestDelete}
         aria-label={triggerAriaLabel ?? triggerLabel ?? "Delete"}
         className={
           iconOnly

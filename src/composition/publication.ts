@@ -15,6 +15,8 @@ import { observationsService } from "@/composition/observations";
 import { timelineEventsService } from "@/composition/timeline-events";
 import { protocolTemplatesService } from "@/composition/protocol-templates";
 import { mriSessionsService } from "@/composition/mri-sessions";
+import { histologySessionsService } from "@/composition/histology-sessions";
+import { biomarkerService } from "@/composition/biomarkers";
 import { researchAssetsService } from "@/composition/research-assets";
 import { storageService } from "@/composition/storage";
 import { annotationsService } from "@/composition/annotations";
@@ -28,6 +30,8 @@ export const publicationWorkspaceService: PublicationWorkspaceService =
     timelineEvents: timelineEventsService,
     protocols: protocolTemplatesService,
     mriSessions: mriSessionsService,
+    histologySessions: histologySessionsService,
+    biomarkers: biomarkerService,
     researchAssets: researchAssetsService,
     storage: storageService,
     annotations: annotationsService,

@@ -8,6 +8,7 @@ import {
   Maximize,
   Move,
   Pencil,
+  Plus,
   RotateCcw,
   Ruler,
   Square,
@@ -96,6 +97,51 @@ export function buildMriSessionContextMenu(opts: {
   if (opts.onDelete) {
     if (entries.length > 0) entries.push({ separator: true });
     entries.push({ id: "delete", label: "Delete MRI session", shortcut: "Delete", danger: true, icon: Trash2, onSelect: opts.onDelete });
+  }
+  return entries;
+}
+
+export function buildHistologySessionContextMenu(opts: {
+  onEdit?: () => void;
+  onDelete?: () => void;
+}): ContextMenuEntry[] {
+  const entries: ContextMenuEntry[] = [];
+  if (opts.onEdit)
+    entries.push({ id: "edit", label: "Edit histology session", shortcut: "F2", icon: Pencil, onSelect: opts.onEdit });
+  if (opts.onDelete) {
+    if (entries.length > 0) entries.push({ separator: true });
+    entries.push({ id: "delete", label: "Delete histology session", shortcut: "Delete", danger: true, icon: Trash2, onSelect: opts.onDelete });
+  }
+  return entries;
+}
+
+export function buildBiomarkerSampleContextMenu(opts: {
+  onEdit?: () => void;
+  onAddResult?: () => void;
+  onDelete?: () => void;
+}): ContextMenuEntry[] {
+  const entries: ContextMenuEntry[] = [];
+  if (opts.onAddResult)
+    entries.push({ id: "add-result", label: "Add result", icon: Plus, onSelect: opts.onAddResult });
+  if (opts.onEdit)
+    entries.push({ id: "edit", label: "Edit sample", shortcut: "F2", icon: Pencil, onSelect: opts.onEdit });
+  if (opts.onDelete) {
+    if (entries.length > 0) entries.push({ separator: true });
+    entries.push({ id: "delete", label: "Delete sample", shortcut: "Delete", danger: true, icon: Trash2, onSelect: opts.onDelete });
+  }
+  return entries;
+}
+
+export function buildBiomarkerResultContextMenu(opts: {
+  onEdit?: () => void;
+  onDelete?: () => void;
+}): ContextMenuEntry[] {
+  const entries: ContextMenuEntry[] = [];
+  if (opts.onEdit)
+    entries.push({ id: "edit", label: "Edit result", shortcut: "F2", icon: Pencil, onSelect: opts.onEdit });
+  if (opts.onDelete) {
+    if (entries.length > 0) entries.push({ separator: true });
+    entries.push({ id: "delete", label: "Delete result", shortcut: "Delete", danger: true, icon: Trash2, onSelect: opts.onDelete });
   }
   return entries;
 }

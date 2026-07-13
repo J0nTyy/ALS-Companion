@@ -12,6 +12,7 @@ import { Button } from "@/presentation/components/ui/button";
 import { Select } from "@/presentation/components/ui/select";
 import { Label } from "@/presentation/components/ui/label";
 import { toUserMessage } from "@/presentation/lib/error-message";
+import { useSettings } from "@/shared/hooks/use-settings";
 import { useExportService } from "../export-service-context";
 
 type ExportMessage = { tone: "success" | "error" | "info"; text: string };
@@ -29,7 +30,11 @@ export function ExportPanel({
   disabled: boolean;
 }) {
   const exportService = useExportService();
-  const [format, setFormat] = useState<ExportFormat>("pdf");
+  const { settings } = useSettings();
+  // Seed from the researcher's preferred default; they can still change it here.
+  const [format, setFormat] = useState<ExportFormat>(
+    () => settings.defaultExportFormat,
+  );
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<ExportMessage | null>(null);
 

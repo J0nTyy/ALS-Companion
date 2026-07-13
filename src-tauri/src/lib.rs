@@ -238,6 +238,85 @@ fn migrations() -> Vec<Migration> {
                 ON annotation_links (target_annotation_id);",
             kind: MigrationKind::Up,
         },
+        // A histology_session is the histology counterpart of an mri_session: an
+        // imaging session hanging off a timeline event (typically a "histopathology"
+        // event). It stores METADATA ONLY — the actual images attach through the
+        // shared research_assets → stored_files abstraction, exactly like MRI, so no
+        // image/blob column here. `stain` is an extensible vocabulary enforced in the
+        // domain (H&E, Nissl, Luxol Fast Blue, GFAP, Iba1, Other, …); tissue,
+        // magnification, operator, and notes are optional free text.
+        Migration {
+            version: 11,
+            description: "create_histology_sessions_table",
+            sql: "CREATE TABLE IF NOT EXISTS histology_sessions (
+                id                TEXT PRIMARY KEY NOT NULL,
+                timeline_event_id TEXT NOT NULL,
+                stain             TEXT NOT NULL DEFAULT 'he',
+                tissue            TEXT,
+                magnification     TEXT,
+                acquisition_date  TEXT NOT NULL,
+                operator          TEXT,
+                notes             TEXT,
+                created_at        TEXT NOT NULL,
+                updated_at        TEXT NOT NULL,
+                FOREIGN KEY (timeline_event_id) REFERENCES timeline_events (id)
+            );
+            CREATE INDEX IF NOT EXISTS idx_histology_sessions_timeline_event
+                ON histology_sessions (timeline_event_id);
+            CREATE INDEX IF NOT EXISTS idx_histology_sessions_acquisition_date
+                ON histology_sessions (acquisition_date);",
+            kind: MigrationKind::Up,
+        },
+        // A biomarker_sample is a biological sample collected for molecular /
+        // biochemical analysis, hanging off a timeline event (typically a
+        // "biochemical_analysis" event). It is the laboratory-evidence PARENT of one
+        // or more biomarker_results. Metadata only; sample_type is an extensible
+        // vocabulary enforced in the domain (Blood, CSF, Spinal Cord, Brain Tissue,
+        // Muscle, Other); operator and notes are optional.
+        Migration {
+            version: 12,
+            description: "create_biomarker_samples_table",
+            sql: "CREATE TABLE IF NOT EXISTS biomarker_samples (
+                id                TEXT PRIMARY KEY NOT NULL,
+                timeline_event_id TEXT NOT NULL,
+                sample_type       TEXT NOT NULL DEFAULT 'blood',
+                collection_date   TEXT NOT NULL,
+                operator          TEXT,
+                notes             TEXT,
+                created_at        TEXT NOT NULL,
+                updated_at        TEXT NOT NULL,
+                FOREIGN KEY (timeline_event_id) REFERENCES timeline_events (id)
+            );
+            CREATE INDEX IF NOT EXISTS idx_biomarker_samples_timeline_event
+                ON biomarker_samples (timeline_event_id);
+            CREATE INDEX IF NOT EXISTS idx_biomarker_samples_collection_date
+                ON biomarker_samples (collection_date);",
+            kind: MigrationKind::Up,
+        },
+        // A biomarker_result is one laboratory value reported for a biomarker_sample
+        // (real FK — biomarker_samples has a primary key). biomarker_name is FREE
+        // TEXT so the schema supports unlimited biomarkers; `value` is stored
+        // verbatim as text (never normalized) so qualitative readouts are preserved.
+        // Results carry only a creation timestamp (no updated_at) — they are point-
+        // in-time evidence. unit, method, and notes are optional.
+        Migration {
+            version: 13,
+            description: "create_biomarker_results_table",
+            sql: "CREATE TABLE IF NOT EXISTS biomarker_results (
+                id                 TEXT PRIMARY KEY NOT NULL,
+                biomarker_sample_id TEXT NOT NULL,
+                biomarker_name     TEXT NOT NULL,
+                value              TEXT NOT NULL,
+                unit               TEXT,
+                method             TEXT,
+                notes              TEXT,
+                created_at         TEXT NOT NULL,
+                FOREIGN KEY (biomarker_sample_id) REFERENCES biomarker_samples (id)
+            );
+            CREATE INDEX IF NOT EXISTS idx_biomarker_results_sample
+                ON biomarker_results (biomarker_sample_id, created_at);",
+            kind: MigrationKind::Up,
+        },
     ]
 }
 

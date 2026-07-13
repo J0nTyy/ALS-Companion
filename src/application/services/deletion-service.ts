@@ -3,6 +3,9 @@ import type { AnimalRepository } from "@/application/ports/animal-repository";
 import type { ObservationRepository } from "@/application/ports/observation-repository";
 import type { TimelineEventRepository } from "@/application/ports/timeline-event-repository";
 import type { MRISessionRepository } from "@/application/ports/mri-session-repository";
+import type { HistologySessionRepository } from "@/application/ports/histology-session-repository";
+import type { BiomarkerSampleRepository } from "@/application/ports/biomarker-sample-repository";
+import type { BiomarkerResultRepository } from "@/application/ports/biomarker-result-repository";
 import type { ResearchAssetRepository } from "@/application/ports/research-asset-repository";
 import type { StorageRepository } from "@/application/ports/storage-repository";
 import type { ProtocolTemplateRepository } from "@/application/ports/protocol-template-repository";
@@ -22,6 +25,9 @@ export interface DeletionDeps {
   observations: ObservationRepository;
   timelineEvents: TimelineEventRepository;
   mriSessions: MRISessionRepository;
+  histologySessions: HistologySessionRepository;
+  biomarkerSamples: BiomarkerSampleRepository;
+  biomarkerResults: BiomarkerResultRepository;
   researchAssets: ResearchAssetRepository;
   storage: StorageRepository;
   annotations: AnnotationRepository;
@@ -44,6 +50,7 @@ export interface DeletionService {
   deleteAnimal(id: string): Promise<void>;
   deleteTimelineEvent(id: string): Promise<void>;
   deleteMriSession(id: string): Promise<void>;
+  deleteHistologySession(id: string): Promise<void>;
   deleteResearchAsset(id: string): Promise<void>;
   deleteObservation(id: string): Promise<void>;
 }
@@ -80,10 +87,39 @@ export function createDeletionService(deps: DeletionDeps): DeletionService {
     return paths;
   }
 
-  async function purgeEvent(eventId: string): Promise<string[]> {
-    const sessions = await deps.mriSessions.listByTimelineEvent(eventId);
+  async function purgeHistologySession(sessionId: string): Promise<string[]> {
+    const assets = await deps.researchAssets.listByOwner(
+      "histology_session",
+      sessionId,
+    );
     const paths: string[] = [];
-    for (const s of sessions) paths.push(...(await purgeSession(s.id)));
+    for (const a of assets) paths.push(...(await purgeAsset(a.id)));
+    await deps.histologySessions.delete(sessionId);
+    return paths;
+  }
+
+  /** Delete a biomarker sample's results, then the sample. No files → no paths. */
+  async function purgeBiomarkerSample(sampleId: string): Promise<void> {
+    const results = await deps.biomarkerResults.listBySample(sampleId);
+    for (const r of results) await deps.biomarkerResults.delete(r.id);
+    await deps.biomarkerSamples.delete(sampleId);
+  }
+
+  async function purgeEvent(eventId: string): Promise<string[]> {
+    // An event may own MRI and/or histology sessions and/or biomarker samples
+    // (all keyed by timeline_event_id); purge every kind regardless of category.
+    const [mriSessions, histologySessions, biomarkerSamples] = await Promise.all(
+      [
+        deps.mriSessions.listByTimelineEvent(eventId),
+        deps.histologySessions.listByTimelineEvent(eventId),
+        deps.biomarkerSamples.listByTimelineEvent(eventId),
+      ],
+    );
+    const paths: string[] = [];
+    for (const s of mriSessions) paths.push(...(await purgeSession(s.id)));
+    for (const s of histologySessions)
+      paths.push(...(await purgeHistologySession(s.id)));
+    for (const s of biomarkerSamples) await purgeBiomarkerSample(s.id);
     await deps.timelineEvents.delete(eventId);
     return paths;
   }
@@ -138,6 +174,9 @@ export function createDeletionService(deps: DeletionDeps): DeletionService {
     },
     async deleteMriSession(id) {
       await removeFiles(await purgeSession(id));
+    },
+    async deleteHistologySession(id) {
+      await removeFiles(await purgeHistologySession(id));
     },
     async deleteResearchAsset(id) {
       await removeFiles(await purgeAsset(id));

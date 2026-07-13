@@ -9,6 +9,9 @@ import type { Animal } from "@/domain/entities/animal";
 import type { Observation } from "@/domain/entities/observation";
 import type { TimelineEvent } from "@/domain/entities/timeline-event";
 import type { MRISession } from "@/domain/entities/mri-session";
+import type { HistologySession } from "@/domain/entities/histology-session";
+import type { BiomarkerSample } from "@/domain/entities/biomarker-sample";
+import type { BiomarkerResult } from "@/domain/entities/biomarker-result";
 import type { ResearchAsset } from "@/domain/entities/research-asset";
 import type { StoredFile } from "@/domain/entities/stored-file";
 import type { ProtocolWithSteps } from "@/domain/entities/protocol-template";
@@ -27,6 +30,12 @@ export interface WorkspaceStudyContents {
   timelineEvents: TimelineEvent[];
   observations: Observation[];
   mriSessions: MRISession[];
+  /** Histology sessions on the study's histopathology timeline events (v1.9). */
+  histologySessions: HistologySession[];
+  /** Biomarker samples on the study's biochemical-analysis timeline events (v2.0). */
+  biomarkerSamples: BiomarkerSample[];
+  /** Laboratory results for those samples (v2.0). */
+  biomarkerResults: BiomarkerResult[];
   researchAssets: ResearchAsset[];
   storedFiles: StoredFile[];
   /** Annotations across the study's stored images (v1.7). */
@@ -47,6 +56,8 @@ export interface WorkspaceSelection {
   timelineEventIds: string[];
   observationIds: string[];
   mriSessionIds: string[];
+  histologySessionIds: string[];
+  biomarkerSampleIds: string[];
   researchAssetIds: string[];
 }
 
@@ -65,6 +76,12 @@ export interface PublicationPackage {
   timelineEvents: TimelineEvent[];
   observations: Observation[];
   mriSessions: MRISession[];
+  /** Histology sessions reflecting the selection. */
+  histologySessions: HistologySession[];
+  /** Biomarker samples reflecting the selection. */
+  biomarkerSamples: BiomarkerSample[];
+  /** Laboratory results whose sample is included in the package. */
+  biomarkerResults: BiomarkerResult[];
   researchAssets: ResearchAsset[];
   storedFiles: StoredFile[];
   /** Annotations on the included stored images. */

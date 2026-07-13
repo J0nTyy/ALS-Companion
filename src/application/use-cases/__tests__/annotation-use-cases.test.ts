@@ -162,6 +162,9 @@ function makeDeps(options: DepsOptions = {}): AnnotationUseCaseDeps {
       options.asset !== undefined ? options.asset : researchAsset,
     ),
     mriSessions: mriReader(mriSession),
+    // Annotation tests use an mri_session owner, so the histology reader is never
+    // consulted — a null stub satisfies the deps bundle.
+    histologySessions: { async getById() { return null; } },
     timelineEvents: timelineReader(timelineEvent),
     animals: animalReader(animal()),
     studies: studyReader(options.study !== undefined ? options.study : study()),

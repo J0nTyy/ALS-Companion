@@ -6,6 +6,8 @@ import type { ObservationsService } from "@/application/services/observations-se
 import type { TimelineEventsService } from "@/application/services/timeline-events-service";
 import type { ProtocolTemplateService } from "@/application/services/protocol-template-service";
 import type { MriSessionService } from "@/application/services/mri-session-service";
+import type { HistologySessionService } from "@/application/services/histology-session-service";
+import type { BiomarkerService } from "@/application/services/biomarker-service";
 import type { ResearchAssetService } from "@/application/services/research-asset-service";
 import type { StorageService } from "@/application/services/storage-service";
 import type { AnnotationService } from "@/application/services/annotation-service";
@@ -23,6 +25,8 @@ export interface PublicationWorkspaceDeps {
   timelineEvents: TimelineEventsService;
   protocols: ProtocolTemplateService;
   mriSessions: MriSessionService;
+  histologySessions: HistologySessionService;
+  biomarkers: BiomarkerService;
   researchAssets: ResearchAssetService;
   storage: StorageService;
   annotations: AnnotationService;
@@ -78,11 +82,46 @@ export function createPublicationWorkspaceService(
         )
       ).flat();
 
-      const researchAssets = (
+      // Histology sessions only exist on histopathology-category events (v1.9).
+      const histologyEvents = timelineEvents.filter(
+        (e) => e.category === "histopathology",
+      );
+      const histologySessions = (
         await Promise.all(
+          histologyEvents.map((e) =>
+            deps.histologySessions.listByTimelineEvent(e.id),
+          ),
+        )
+      ).flat();
+
+      // Research assets are polymorphic; gather MRI + histology owners into one
+      // flat list. The downstream file/annotation loading is owner-agnostic.
+      const [mriAssets, histologyAssets] = await Promise.all([
+        Promise.all(
           mriSessions.map((m) =>
             deps.researchAssets.listByOwner("mri_session", m.id),
           ),
+        ),
+        Promise.all(
+          histologySessions.map((h) =>
+            deps.researchAssets.listByOwner("histology_session", h.id),
+          ),
+        ),
+      ]);
+      const researchAssets = [...mriAssets.flat(), ...histologyAssets.flat()];
+
+      // Biomarker samples live on biochemical-analysis events; each has 0+ results (v2.0).
+      const biochemicalEvents = timelineEvents.filter(
+        (e) => e.category === "biochemical_analysis",
+      );
+      const biomarkerSamples = (
+        await Promise.all(
+          biochemicalEvents.map((e) => deps.biomarkers.listSamples(e.id)),
+        )
+      ).flat();
+      const biomarkerResults = (
+        await Promise.all(
+          biomarkerSamples.map((s) => deps.biomarkers.listResults(s.id)),
         )
       ).flat();
 
@@ -112,6 +151,9 @@ export function createPublicationWorkspaceService(
         timelineEvents,
         observations,
         mriSessions,
+        histologySessions,
+        biomarkerSamples,
+        biomarkerResults,
         researchAssets,
         storedFiles,
         annotations,

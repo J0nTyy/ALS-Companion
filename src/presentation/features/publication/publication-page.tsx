@@ -1,6 +1,8 @@
 import { STUDY_STATUS_META } from "@/domain/entities/study";
 import { TIMELINE_EVENT_CATEGORY_META } from "@/domain/entities/timeline-event";
 import { OBSERVATION_KIND_META } from "@/domain/entities/observation";
+import { HISTOLOGY_STAIN_META } from "@/domain/entities/histology-session";
+import { BIOMARKER_SAMPLE_TYPE_META } from "@/domain/entities/biomarker-sample";
 import {
   RESEARCH_ASSET_STATUS_META,
   RESEARCH_ASSET_TYPE_META,
@@ -144,6 +146,25 @@ function SelectionSections({
     label: m.title,
     subtitle: `${m.anatomicalRegion ?? "—"} · ${formatDateOnly(m.acquisitionDate)}`,
   }));
+  const histologyItems: ChecklistItem[] = contents.histologySessions.map(
+    (h) => ({
+      id: h.id,
+      label: HISTOLOGY_STAIN_META[h.stain].label,
+      subtitle: `${h.tissue ?? "—"} · ${formatDateOnly(h.acquisitionDate)}`,
+    }),
+  );
+  const biomarkerItems: ChecklistItem[] = contents.biomarkerSamples.map(
+    (s) => {
+      const count = contents.biomarkerResults.filter(
+        (r) => r.biomarkerSampleId === s.id,
+      ).length;
+      return {
+        id: s.id,
+        label: BIOMARKER_SAMPLE_TYPE_META[s.sampleType].label,
+        subtitle: `${formatDateOnly(s.collectionDate)} · ${count} result${count === 1 ? "" : "s"}`,
+      };
+    },
+  );
   const assetItems: ChecklistItem[] = contents.researchAssets.map((r) => ({
     id: r.id,
     label: r.title,
@@ -175,6 +196,8 @@ function SelectionSections({
       {section("Timeline events", "timelineEventIds", eventItems)}
       {section("Observations", "observationIds", observationItems)}
       {section("MRI sessions", "mriSessionIds", sessionItems)}
+      {section("Histology sessions", "histologySessionIds", histologyItems)}
+      {section("Biomarker samples", "biomarkerSampleIds", biomarkerItems)}
       {section("Research assets", "researchAssetIds", assetItems)}
     </div>
   );

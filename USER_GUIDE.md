@@ -1,15 +1,16 @@
 # ALS Research Companion — User Guide
 
 A calm, unified workspace for running ALS transgenic‑mouse studies: your studies,
-mice, observations, experiment timelines, MRI images, annotations, search, and
-publication packages — all in one place, stored locally on your computer.
+mice, observations, experiment timelines, MRI and histology images, annotations,
+biomarker/molecular results, search, and publication packages — all in one place,
+stored locally on your computer.
 
 > **What this is:** a research *productivity* tool.
 > **What this is not:** a diagnostic or clinical tool. It never diagnoses disease,
 > estimates prognosis, or makes clinical recommendations. Everything it shows is
 > data you entered or files you attached.
 
-**Version:** this guide describes **v1.8**. The current version is always shown at
+**Version:** this guide describes **v2.0.1**. The current version is always shown at
 the bottom of the sidebar and under **Settings → About**.
 
 ---
@@ -24,7 +25,7 @@ the bottom of the sidebar and under **Settings → About**.
 6. [Animals (mouse database)](#6-animals-mouse-database)
 7. [Observations](#7-observations)
 8. [Experiment timeline](#8-experiment-timeline)
-9. [MRI sessions](#9-mri-sessions)
+9. [MRI & histology sessions](#9-mri--histology-sessions)
 10. [Research assets & files](#10-research-assets--files)
 11. [MRI images & the image viewer](#11-mri-images--the-image-viewer)
 12. [Annotations](#12-annotations)
@@ -83,14 +84,23 @@ Study                      (e.g. "SOD1 disease progression")
 └─ Animal                  (one mouse, with a unique ID)
    ├─ Observations         (body weights, motor scores over time)
    └─ Timeline events      (the workflow: gene confirmation, MRI, histology…)
-      └─ MRI session       (attached to an "MRI" timeline event)
-         └─ Research asset  (a described file, e.g. "Baseline T2 series")
-            └─ Image        (the actual PNG/JPEG/TIFF you attach)
-               └─ Annotation (a point or rectangle you draw on the image)
+      ├─ MRI session       (attached to an "MRI" timeline event)
+      │  └─ Research asset  (a described file, e.g. "Baseline T2 series")
+      │     └─ Image        (the actual PNG/JPEG/TIFF you attach)
+      │        └─ Annotation (a point or rectangle you draw on the image)
+      ├─ Histology session  (attached to a "Histopathology" timeline event)
+      │  └─ Research asset  (…the same assets → image → annotation stack as MRI)
+      └─ Biomarker sample   (attached to a "Biochemical Analysis" timeline event)
+         └─ Biomarker result (a lab value: biomarker, value, unit, method)
 ```
 
 You'll generally work **top‑down**: create a study, add mice, record observations
-and timeline events, then attach MRI images and annotate them.
+and timeline events, then attach MRI or histology images and annotate them.
+
+> **MRI and histology work the same way.** A histology session is just another kind
+> of imaging session — once you've attached an image to it, the viewer, annotations,
+> measurements, longitudinal links, and export all behave exactly as they do for MRI.
+> Anything this guide says about MRI images applies to histology images too.
 
 Two important, everyday ideas:
 
@@ -244,8 +254,8 @@ and what's next. Open an animal to find the **Experiment timeline** section.
 | **Behavioral Assessment** | Rotarod, grip strength, gait, activity, etc. |
 | **Neurological Examination** | Reflexes, paralysis scoring, hindlimb function, etc. |
 | **MRI** | An imaging session (unlocks the MRI panel — see below). |
-| **Biochemical Analysis** | Biomarker / molecular assays. |
-| **Histopathology** | Tissue analysis. |
+| **Biochemical Analysis** | Biomarker / molecular assays (unlocks the biomarker panel — see below). |
+| **Histopathology** | Tissue / stained‑section analysis (unlocks the histology panel — see below). |
 | **Custom** | Anything else. |
 
 ### Add and manage events
@@ -253,22 +263,44 @@ and what's next. Open an animal to find the **Experiment timeline** section.
   optional **planned date** and **completed date**, and notes.
 - **Mark complete** — a one‑click action that sets a planned event to Completed and
   stamps today's date.
-- **Edit** / **Delete** — change or permanently remove an event (deleting an MRI
-  event also removes any MRI sessions, assets, and images attached to it).
+- **Edit** / **Delete** — change or permanently remove an event (deleting an MRI or
+  histopathology event also removes any sessions, assets, and images attached to it).
 - The **next planned** event is highlighted so you can see at a glance what's coming.
 
-### The MRI panel
+### The MRI, histology, and biomarker panels
 When an event's category is **MRI**, an **MRI session panel** appears directly
-beneath it. This is where imaging for that step lives (next section).
+beneath it; when it's **Histopathology**, a **Histology session panel** appears the
+same way (both hold imaging — next section). When it's **Biochemical Analysis**, a
+**Biomarker samples panel** appears — this is where laboratory/molecular results
+live (see below).
+
+### Biomarker samples & results (Biochemical Analysis events)
+Under a **Biochemical Analysis** event you can record the biological samples you
+collected and the laboratory values measured for each. The app **captures** these
+values — it does not analyze, graph, or normalize them.
+
+- **Add a biomarker sample** — choose a **sample type** (Blood, CSF, Spinal Cord,
+  Brain Tissue, Muscle, Other), a **collection date**, and optional operator/notes.
+- **Expand a sample** (click its row) to see its **results table**, then **Add
+  result**: a **biomarker** (start typing — common ones like NfL, SOD1, TDP‑43,
+  GFAP, IL‑6, TNF‑α, Oxidative Stress are suggested, but you can enter any name), a
+  **value** (typed exactly as reported — e.g. `45.2` or `< 0.05`), and optional
+  **unit**, **method** (e.g. ELISA, Western blot, qPCR), and notes.
+- **Edit / delete** any sample or result. Deleting a sample also removes all of its
+  results. Everything is **manual entry** — there is no automatic lab-instrument
+  import.
+- On an **archived** study these are read‑only, like the rest of the app.
 
 ---
 
-## 9. MRI sessions
+## 9. MRI & histology sessions
 
-An **MRI session** records the details of one imaging session and holds its images.
-Sessions appear under an **MRI** timeline event.
+An **imaging session** records the details of one session and holds its images. MRI
+sessions appear under an **MRI** timeline event; histology sessions appear under a
+**Histopathology** event. They work identically — same assets, viewer, annotations,
+measurements, links, and export.
 
-### Add a session
+### Add an MRI session
 In the MRI panel click **Add MRI session**. Fields:
 
 - **Title** (required) — e.g. *"Baseline brain MRI"*.
@@ -277,10 +309,23 @@ In the MRI panel click **Add MRI session**. Fields:
 - **Anatomical region** (optional) — e.g. motor cortex, brainstem, spinal cord.
 - **Operator** (optional) and **Notes** (optional).
 
+### Add a histology session
+In the histology panel (under a **Histopathology** event) click **Add histology
+session**. Fields:
+
+- **Stain** (required) — **H&E, Nissl, Luxol Fast Blue, GFAP, Iba1,** or **Other**
+  (more stains can be added in future versions).
+- **Acquisition date** (required).
+- **Tissue** (optional) — e.g. lumbar spinal cord, motor cortex.
+- **Magnification** (optional) — e.g. *20×*, *40× oil*.
+- **Operator** (optional) and **Notes** (optional).
+
+A histology session is labelled by its stain and tissue (e.g. *"GFAP · Spinal cord"*).
+
 ### Edit / delete
 Each session has **Edit** and a **Delete** (trash) button. Deleting a session also
 removes its research assets and attached image files. Below the session details
-you'll find its **Research assets**.
+you'll find its **Research assets** — the same section for both session types.
 
 ---
 
@@ -291,7 +336,7 @@ spreadsheet, etc.). You create the *description* first, then attach the *file*. 
 keeps everything organized and searchable.
 
 ### Add an asset
-Under an MRI session, open **Research assets → Add research asset**:
+Under an MRI **or histology** session, open **Research assets → Add research asset**:
 
 - **Type** — MRI Image, Histology Image, Microscopy Image, PDF, Spreadsheet,
   Document, Video, or Other.
@@ -491,8 +536,9 @@ Open **Publish** in the sidebar to assemble a tidy **package** of a study's cont
 
 1. **Pick a study.**
 2. On the left, **choose what to include**: which animals, timeline events,
-   observations, MRI sessions, and research assets. (The study details and its
-   protocol are always included.) By default, everything is selected.
+   observations, MRI sessions, histology sessions, biomarker samples, and research
+   assets. (The study details and its protocol are always included.) By default,
+   everything is selected.
 3. On the right, a **live preview** shows the package's sections and item counts
    (including annotations and longitudinal links), and warns you if, for example, no
    animals are selected or the package would be empty.
@@ -504,7 +550,9 @@ Below the preview, use **Export** to save the package to disk:
    - **PDF report** — a professional, print‑ready document.
    - **Word (.docx)** — an editable report with headings and tables.
    - **CSV datasets** — separate spreadsheet files (`animals.csv`, `observations.csv`,
-     `timeline.csv`, `annotations.csv`, `measurements.csv`, `annotation_links.csv`).
+     `timeline.csv`, `histology_sessions.csv`, `biomarker_samples.csv`,
+     `biomarker_results.csv`, `annotations.csv`, `measurements.csv`,
+     `annotation_links.csv`).
    - **JSON** — the complete package as structured data (ideal for analysis or future
      AI tools; stable schema).
 2. Click **Export & choose destination** and pick a **folder**. The file(s) are
@@ -523,11 +571,46 @@ fabricated.
 
 ## 16. Settings
 
-- **Appearance** — choose **Light**, **Dark**, or **System** theme.
-- **About** — the application name and current **version**, plus the reminder that
-  this software supports research productivity and is **not** a diagnostic tool.
+Preferences are saved on your computer and apply everywhere in the app.
 
-More preferences will appear here as new features land.
+**Appearance**
+- **Theme** — Light, Dark, or System (follows your computer).
+- **Accent color** — Teal (default), Blue, Violet, Rose, or Amber for buttons,
+  links, and highlights.
+- **Density** — Comfortable or Compact (Compact fits more on screen).
+- **Larger text** — increases the overall text and control size.
+- **Collapse the sidebar by default** — start new sessions with the icon rail.
+
+**Workspace**
+- **Confirm before deleting** — when off, small deletes happen without the dialog;
+  deleting a whole study **always** asks you to type its name (safety isn't removed).
+- **Default export format** — which format the publication workspace pre‑selects.
+
+**Accessibility**
+- **High contrast** — stronger borders and secondary text for legibility.
+- **Reduce motion** — minimizes animations and transitions.
+
+**Data & sample dataset** — install a realistic, fully‑removable demonstration
+dataset (see below). **About** shows the version, the database schema version, the
+list of applied migrations, and the reminder that this software supports research
+productivity and is **not** a diagnostic tool. You can **reset** all preferences
+here. Options marked **“Planned”** preview settings that arrive with future features.
+
+### Sample dataset (for learning & demos)
+A labelled **SAMPLE** dataset lets you explore every feature with realistic,
+animal‑only data (studies, animals, timelines, observations, MRI & histology
+sessions, biomarker panels, annotations, and links). Because the database is
+single‑writer, install it with the **app closed**, from a terminal in the project
+folder:
+
+```
+python scripts/make-sample-media.py     # fetch/generate sample media (once)
+python scripts/seed-sample-data.py       # install the sample dataset
+python scripts/seed-sample-data.py --clear   # remove it (only the SAMPLE data)
+```
+
+Everything it creates is prefixed **“SAMPLE —”**; removing it never touches your own
+studies. Images are animal/laboratory imagery only.
 
 ---
 
@@ -575,6 +658,9 @@ on the right (e.g. Enter, F2, Delete; and R/F/Z/P on the comparison screen).
 | **An animal's details** (its page) | Delete animal |
 | **A timeline event** | Mark complete *(planned only)* · Edit event · Delete event |
 | **An MRI session** | Edit MRI session · Delete MRI session |
+| **A histology session** | Edit histology session · Delete histology session |
+| **A biomarker sample** | Add result · Edit sample · Delete sample |
+| **A biomarker result** (a row) | Edit result · Delete result |
 | **A research asset** | Edit research asset · Delete research asset |
 | **A search result** | Open |
 | **The MRI image** (background) | Fit image · Reset zoom · Center image · Add point · Add rectangle |
@@ -635,6 +721,10 @@ controls, **Enter/Space** activates them, and **Esc** closes a confirmation dial
 | **Timeline event** | A step in a mouse's experiment workflow (planned or completed). |
 | **Protocol** | A study's reusable checklist of steps; new animals inherit it as their timeline. |
 | **MRI session** | Details of one imaging session, attached to an MRI timeline event. |
+| **Histology session** | Details of one histology imaging session (stain, tissue, magnification…), attached to a Histopathology timeline event; reuses the same image/annotation stack as MRI. |
+| **Stain** | The histological stain of a section (H&E, Nissl, Luxol Fast Blue, GFAP, Iba1, Other). |
+| **Biomarker sample** | A biological sample (Blood, CSF, Spinal Cord, Brain Tissue, Muscle, Other) collected for molecular analysis, attached to a Biochemical Analysis timeline event; holds laboratory results. |
+| **Biomarker result** | One laboratory value for a sample: a biomarker (e.g. NfL), a value recorded verbatim, and optional unit/method/notes. |
 | **Research asset** | A described placeholder for a file (image, PDF, spreadsheet, …). |
 | **Stored image** | The actual PNG/JPEG/TIFF attached to a research asset. |
 | **Annotation** | A point or rectangle drawn on an image, with an optional label and notes. |

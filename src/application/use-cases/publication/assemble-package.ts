@@ -19,7 +19,18 @@ export function assemblePackage(
   const events = new Set(selection.timelineEventIds);
   const observations = new Set(selection.observationIds);
   const sessions = new Set(selection.mriSessionIds);
+  const histologySessions = new Set(selection.histologySessionIds);
+  const biomarkerSamples = new Set(selection.biomarkerSampleIds);
   const assets = new Set(selection.researchAssetIds);
+
+  // Biomarker results follow their selected sample (like stored files follow assets).
+  const includedSamples = contents.biomarkerSamples.filter((s) =>
+    biomarkerSamples.has(s.id),
+  );
+  const includedSampleIds = new Set(includedSamples.map((s) => s.id));
+  const biomarkerResults = contents.biomarkerResults.filter((r) =>
+    includedSampleIds.has(r.biomarkerSampleId),
+  );
 
   // A stored file is included only if its research asset is included.
   const storedFiles = contents.storedFiles.filter((f) =>
@@ -51,6 +62,11 @@ export function assemblePackage(
     timelineEvents: contents.timelineEvents.filter((e) => events.has(e.id)),
     observations: contents.observations.filter((o) => observations.has(o.id)),
     mriSessions: contents.mriSessions.filter((m) => sessions.has(m.id)),
+    histologySessions: contents.histologySessions.filter((h) =>
+      histologySessions.has(h.id),
+    ),
+    biomarkerSamples: includedSamples,
+    biomarkerResults,
     researchAssets: contents.researchAssets.filter((r) => assets.has(r.id)),
     storedFiles,
     annotations,

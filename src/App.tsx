@@ -6,6 +6,8 @@ import type { ObservationsService } from "@/application/services/observations-se
 import type { TimelineEventsService } from "@/application/services/timeline-events-service";
 import type { ProtocolTemplateService } from "@/application/services/protocol-template-service";
 import type { MriSessionService } from "@/application/services/mri-session-service";
+import type { HistologySessionService } from "@/application/services/histology-session-service";
+import type { BiomarkerService } from "@/application/services/biomarker-service";
 import type { ResearchAssetService } from "@/application/services/research-asset-service";
 import type { SearchService } from "@/application/services/search-service";
 import type { StorageService } from "@/application/services/storage-service";
@@ -17,6 +19,7 @@ import type { AnnotationService } from "@/application/services/annotation-servic
 import type { AnnotationLinkService } from "@/application/services/annotation-link-service";
 import type { ExportService } from "@/application/services/export-service";
 import { ThemeProvider } from "@/shared/hooks/use-theme";
+import { SettingsProvider } from "@/shared/hooks/use-settings";
 import { AppShell } from "@/presentation/layouts/app-shell";
 import { DashboardServiceProvider } from "@/presentation/features/dashboard/dashboard-service-context";
 import { DashboardPage } from "@/presentation/features/dashboard/dashboard-page";
@@ -37,6 +40,8 @@ import { ObservationsServiceProvider } from "@/presentation/features/observation
 import { TimelineEventsServiceProvider } from "@/presentation/features/timeline/timeline-events-service-context";
 import { ProtocolServiceProvider } from "@/presentation/features/protocols/protocol-service-context";
 import { MriSessionServiceProvider } from "@/presentation/features/mri/mri-session-service-context";
+import { HistologySessionServiceProvider } from "@/presentation/features/histology/histology-session-service-context";
+import { BiomarkerServiceProvider } from "@/presentation/features/biomarkers/biomarker-service-context";
 import { ResearchAssetServiceProvider } from "@/presentation/features/assets/research-asset-service-context";
 import { SearchServiceProvider } from "@/presentation/features/search/search-service-context";
 import { SearchPage } from "@/presentation/features/search/search-page";
@@ -58,6 +63,8 @@ export function App({
   timelineEventsService,
   protocolTemplatesService,
   mriSessionsService,
+  histologySessionsService,
+  biomarkerService,
   researchAssetsService,
   searchService,
   storageService,
@@ -75,6 +82,8 @@ export function App({
   timelineEventsService: TimelineEventsService;
   protocolTemplatesService: ProtocolTemplateService;
   mriSessionsService: MriSessionService;
+  histologySessionsService: HistologySessionService;
+  biomarkerService: BiomarkerService;
   researchAssetsService: ResearchAssetService;
   searchService: SearchService;
   storageService: StorageService;
@@ -88,6 +97,7 @@ export function App({
 }) {
   return (
     <ThemeProvider>
+      <SettingsProvider>
       <ContextMenuProvider>
       <StudiesServiceProvider service={studiesService}>
         <AnimalsServiceProvider service={animalsService}>
@@ -95,6 +105,8 @@ export function App({
             <TimelineEventsServiceProvider service={timelineEventsService}>
               <ProtocolServiceProvider service={protocolTemplatesService}>
                 <MriSessionServiceProvider service={mriSessionsService}>
+                  <HistologySessionServiceProvider service={histologySessionsService}>
+                  <BiomarkerServiceProvider service={biomarkerService}>
                   <ResearchAssetServiceProvider service={researchAssetsService}>
                   <SearchServiceProvider service={searchService}>
                   <StorageServiceProvider service={storageService}>
@@ -138,6 +150,8 @@ export function App({
                   </StorageServiceProvider>
                   </SearchServiceProvider>
                   </ResearchAssetServiceProvider>
+                  </BiomarkerServiceProvider>
+                  </HistologySessionServiceProvider>
                 </MriSessionServiceProvider>
               </ProtocolServiceProvider>
             </TimelineEventsServiceProvider>
@@ -145,6 +159,7 @@ export function App({
         </AnimalsServiceProvider>
       </StudiesServiceProvider>
       </ContextMenuProvider>
+      </SettingsProvider>
     </ThemeProvider>
   );
 }

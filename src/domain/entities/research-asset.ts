@@ -15,12 +15,16 @@
  * image/PDF/spreadsheet/report first exists as a ResearchAsset; the eventual
  * storage mechanism lives behind an abstraction the rest of the app never sees.
  *
- * The asset is polymorphic via (`ownerType`, `ownerId`). Only "mri_session" is
- * supported today, but adding an owner type later is a one-line change — no
- * redesign — because everything keys off the derived union types.
+ * The asset is polymorphic via (`ownerType`, `ownerId`). Adding an owner type is a
+ * one-line change — no redesign — because everything keys off the derived union
+ * types. Owners today: MRI sessions and histology sessions (both imaging sessions
+ * that reuse the same asset → file → viewer → annotation stack).
  */
 
-export const RESEARCH_ASSET_OWNER_TYPES = ["mri_session"] as const;
+export const RESEARCH_ASSET_OWNER_TYPES = [
+  "mri_session",
+  "histology_session",
+] as const;
 
 export type ResearchAssetOwnerType =
   (typeof RESEARCH_ASSET_OWNER_TYPES)[number];
@@ -98,6 +102,7 @@ export const RESEARCH_ASSET_OWNER_TYPE_META: Record<
   { label: string }
 > = {
   mri_session: { label: "MRI Session" },
+  histology_session: { label: "Histology Session" },
 };
 
 /** User-facing labels for each asset type. */

@@ -157,6 +157,7 @@ function setup(options: SetupOptions = {}) {
     filePicker,
     researchAssets: assets,
     mriSessions: { async getById() { return mriSession; } },
+    histologySessions: { async getById() { return null; } },
     timelineEvents: { async getById() { return timelineEvent; } },
     animals: { async getById() { return animal(); } },
     studies: { async getById() { return options.study ?? study(); } },

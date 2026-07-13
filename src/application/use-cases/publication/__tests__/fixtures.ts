@@ -3,6 +3,9 @@ import type { Animal } from "@/domain/entities/animal";
 import type { Observation } from "@/domain/entities/observation";
 import type { TimelineEvent } from "@/domain/entities/timeline-event";
 import type { MRISession } from "@/domain/entities/mri-session";
+import type { HistologySession } from "@/domain/entities/histology-session";
+import type { BiomarkerSample } from "@/domain/entities/biomarker-sample";
+import type { BiomarkerResult } from "@/domain/entities/biomarker-result";
 import type { ResearchAsset } from "@/domain/entities/research-asset";
 import type { StoredFile } from "@/domain/entities/stored-file";
 import type {
@@ -77,6 +80,47 @@ export const session = (
   acquisitionDate: "2026-07-10",
   createdAt: T,
   updatedAt: T,
+  ...over,
+});
+
+export const histologySession = (
+  id: string,
+  timelineEventId: string,
+  over: Partial<HistologySession> = {},
+): HistologySession => ({
+  id,
+  timelineEventId,
+  stain: "he",
+  acquisitionDate: "2026-07-11",
+  createdAt: T,
+  updatedAt: T,
+  ...over,
+});
+
+export const biomarkerSample = (
+  id: string,
+  timelineEventId: string,
+  over: Partial<BiomarkerSample> = {},
+): BiomarkerSample => ({
+  id,
+  timelineEventId,
+  sampleType: "blood",
+  collectionDate: "2026-07-11",
+  createdAt: T,
+  updatedAt: T,
+  ...over,
+});
+
+export const biomarkerResult = (
+  id: string,
+  biomarkerSampleId: string,
+  over: Partial<BiomarkerResult> = {},
+): BiomarkerResult => ({
+  id,
+  biomarkerSampleId,
+  biomarkerName: "Neurofilament Light (NfL)",
+  value: "45.2",
+  createdAt: T,
   ...over,
 });
 
@@ -162,6 +206,11 @@ export function sampleContents(): WorkspaceStudyContents {
     timelineEvents: [event("e1", "a1"), event("e2", "a2")],
     observations: [observation("o1", "a1"), observation("o2", "a2")],
     mriSessions: [session("m1", "e1")],
+    // No histology sessions or biomarkers by default — feature-specific tests add
+    // their own so the shared MRI-centric counts stay stable.
+    histologySessions: [],
+    biomarkerSamples: [],
+    biomarkerResults: [],
     researchAssets: [asset("r1", "m1"), asset("r2", "m1")],
     storedFiles: [file("f1", "r1"), file("f2", "r2")],
     // an1 on f1 (asset r1), an2 on f2 (asset r2); linked to each other.

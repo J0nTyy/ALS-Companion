@@ -14,6 +14,8 @@ export function emptySelection(): WorkspaceSelection {
     timelineEventIds: [],
     observationIds: [],
     mriSessionIds: [],
+    histologySessionIds: [],
+    biomarkerSampleIds: [],
     researchAssetIds: [],
   };
 }
@@ -27,6 +29,8 @@ export function fullSelection(
     timelineEventIds: contents.timelineEvents.map((e) => e.id),
     observationIds: contents.observations.map((o) => o.id),
     mriSessionIds: contents.mriSessions.map((m) => m.id),
+    histologySessionIds: contents.histologySessions.map((h) => h.id),
+    biomarkerSampleIds: contents.biomarkerSamples.map((s) => s.id),
     researchAssetIds: contents.researchAssets.map((r) => r.id),
   };
 }
@@ -67,6 +71,8 @@ export function selectionSize(selection: WorkspaceSelection): number {
     selection.timelineEventIds.length +
     selection.observationIds.length +
     selection.mriSessionIds.length +
+    selection.histologySessionIds.length +
+    selection.biomarkerSampleIds.length +
     selection.researchAssetIds.length
   );
 }

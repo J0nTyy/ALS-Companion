@@ -8,6 +8,8 @@ import { observationsService } from "@/composition/observations";
 import { timelineEventsService } from "@/composition/timeline-events";
 import { protocolTemplatesService } from "@/composition/protocol-templates";
 import { mriSessionsService } from "@/composition/mri-sessions";
+import { histologySessionsService } from "@/composition/histology-sessions";
+import { biomarkerService } from "@/composition/biomarkers";
 import { researchAssetsService } from "@/composition/research-assets";
 import { searchService } from "@/composition/search";
 import { storageService } from "@/composition/storage";
@@ -34,6 +36,8 @@ ReactDOM.createRoot(rootElement).render(
       timelineEventsService={timelineEventsService}
       protocolTemplatesService={protocolTemplatesService}
       mriSessionsService={mriSessionsService}
+      histologySessionsService={histologySessionsService}
+      biomarkerService={biomarkerService}
       researchAssetsService={researchAssetsService}
       searchService={searchService}
       storageService={storageService}

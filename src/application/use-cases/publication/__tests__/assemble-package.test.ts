@@ -34,6 +34,8 @@ describe("assemblePackage", () => {
       timelineEventIds: ["e1"],
       observationIds: [],
       mriSessionIds: ["m1"],
+      histologySessionIds: [],
+      biomarkerSampleIds: [],
       researchAssetIds: ["r1"],
     });
     expect(pkg.animals.map((a) => a.id)).toEqual(["a1"]);

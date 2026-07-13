@@ -13,6 +13,8 @@ import {
 } from "./components/timeline-event-form";
 import { TimelineEventItem } from "./components/timeline-event-item";
 import { MriSessionPanel } from "@/presentation/features/mri/mri-session-panel";
+import { HistologySessionPanel } from "@/presentation/features/histology/histology-session-panel";
+import { BiomarkerPanel } from "@/presentation/features/biomarkers/biomarker-panel";
 import { useTimelineEvents } from "./use-timeline-events";
 import { useTimelineEventsService } from "./timeline-events-service-context";
 import { useDeletionService } from "@/presentation/features/deletion/deletion-service-context";
@@ -236,6 +238,18 @@ export function TimelineSection({
                 />
                 {event.category === "mri" ? (
                   <MriSessionPanel
+                    timelineEventId={event.id}
+                    readOnly={readOnly}
+                  />
+                ) : null}
+                {event.category === "histopathology" ? (
+                  <HistologySessionPanel
+                    timelineEventId={event.id}
+                    readOnly={readOnly}
+                  />
+                ) : null}
+                {event.category === "biochemical_analysis" ? (
+                  <BiomarkerPanel
                     timelineEventId={event.id}
                     readOnly={readOnly}
                   />

@@ -47,7 +47,7 @@ describe("ExportService.export", () => {
       expect(result.fileNames).toContain("animals.csv");
     }
     expect(written?.directory).toBe("/exports");
-    expect(written?.names).toHaveLength(6);
+    expect(written?.names).toHaveLength(9);
   });
 
   it("does nothing when the destination picker is cancelled", async () => {

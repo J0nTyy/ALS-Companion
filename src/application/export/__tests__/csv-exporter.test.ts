@@ -24,12 +24,15 @@ describe("toCsv escaping", () => {
 });
 
 describe("csvExporter", () => {
-  it("produces the six expected dataset files", () => {
+  it("produces the nine expected dataset files", () => {
     const files = csvExporter(samplePackage());
     expect(files.map((f) => f.name).sort()).toEqual([
       "animals.csv",
       "annotation_links.csv",
       "annotations.csv",
+      "biomarker_results.csv",
+      "biomarker_samples.csv",
+      "histology_sessions.csv",
       "measurements.csv",
       "observations.csv",
       "timeline.csv",

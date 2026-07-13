@@ -19,6 +19,12 @@ import type {
   MRISessionReader,
   MRISessionRepository,
 } from "@/application/ports/mri-session-repository";
+import type {
+  HistologySessionReader,
+  HistologySessionRepository,
+} from "@/application/ports/histology-session-repository";
+import type { BiomarkerSampleRepository } from "@/application/ports/biomarker-sample-repository";
+import type { BiomarkerResultRepository } from "@/application/ports/biomarker-result-repository";
 import type { ResearchAssetRepository } from "@/application/ports/research-asset-repository";
 import type { StorageRepository } from "@/application/ports/storage-repository";
 import type { AnnotationRepository } from "@/application/ports/annotation-repository";
@@ -101,6 +107,37 @@ export interface MriSessionUseCaseDeps {
 }
 
 /**
+ * The collaborators every histology-session use case needs. Identical in shape to
+ * {@link MriSessionUseCaseDeps}: a session hangs off a timeline event, so
+ * writable-parent checks walk `TimelineEvent → Animal → Study` through the same
+ * narrow read-only ports.
+ */
+export interface HistologySessionUseCaseDeps {
+  repository: HistologySessionRepository;
+  timelineEvents: TimelineEventReader;
+  animals: AnimalReader;
+  studies: StudyReader;
+  clock: Clock;
+  ids: IdGenerator;
+}
+
+/**
+ * The collaborators every biomarker use case needs. A sample hangs off a timeline
+ * event, so writable-parent checks walk `TimelineEvent → Animal → Study` (samples)
+ * or `BiomarkerSample → TimelineEvent → Animal → Study` (results) through the same
+ * narrow read-only ports. One bundle serves both samples and results.
+ */
+export interface BiomarkerUseCaseDeps {
+  samples: BiomarkerSampleRepository;
+  results: BiomarkerResultRepository;
+  timelineEvents: TimelineEventReader;
+  animals: AnimalReader;
+  studies: StudyReader;
+  clock: Clock;
+  ids: IdGenerator;
+}
+
+/**
  * The collaborators every research-asset use case needs. An asset is metadata
  * describing a scientific file (never the file itself) and hangs off a
  * polymorphic owner. For the only owner type today ("mri_session") the
@@ -111,6 +148,7 @@ export interface MriSessionUseCaseDeps {
 export interface ResearchAssetUseCaseDeps {
   repository: ResearchAssetRepository;
   mriSessions: MRISessionReader;
+  histologySessions: HistologySessionReader;
   timelineEvents: TimelineEventReader;
   animals: AnimalReader;
   studies: StudyReader;
@@ -132,6 +170,7 @@ export interface StorageUseCaseDeps {
   filePicker: FilePicker;
   researchAssets: ResearchAssetRepository;
   mriSessions: MRISessionReader;
+  histologySessions: HistologySessionReader;
   timelineEvents: TimelineEventReader;
   animals: AnimalReader;
   studies: StudyReader;
@@ -152,6 +191,7 @@ export interface AnnotationUseCaseDeps {
   storage: StorageRepository;
   researchAssets: ResearchAssetRepository;
   mriSessions: MRISessionReader;
+  histologySessions: HistologySessionReader;
   timelineEvents: TimelineEventReader;
   animals: AnimalReader;
   studies: StudyReader;

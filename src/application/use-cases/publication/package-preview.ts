@@ -15,6 +15,8 @@ function selectableCount(pkg: PublicationPackage): number {
     pkg.timelineEvents.length +
     pkg.observations.length +
     pkg.mriSessions.length +
+    pkg.histologySessions.length +
+    pkg.biomarkerSamples.length +
     pkg.researchAssets.length
   );
 }
@@ -47,6 +49,9 @@ export function previewPackage(
     { key: "timelineEvents", label: "Timeline events", count: pkg.timelineEvents.length },
     { key: "observations", label: "Observations", count: pkg.observations.length },
     { key: "mriSessions", label: "MRI sessions", count: pkg.mriSessions.length },
+    { key: "histologySessions", label: "Histology sessions", count: pkg.histologySessions.length },
+    { key: "biomarkerSamples", label: "Biomarker samples", count: pkg.biomarkerSamples.length },
+    { key: "biomarkerResults", label: "Biomarker results", count: pkg.biomarkerResults.length },
     { key: "researchAssets", label: "Research assets", count: pkg.researchAssets.length },
     { key: "storedFiles", label: "Stored files", count: pkg.storedFiles.length },
     { key: "annotations", label: "Annotations", count: pkg.annotations.length },

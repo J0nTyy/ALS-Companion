@@ -93,6 +93,26 @@
     --input: 217 20% 22%;
     --ring: 186 80% 45%;
   }
+
+  /*
+   * Accent presets (Settings → Appearance). The default is teal (the base tokens
+   * above); selecting another accent adds an `accent-*` class to <html>, which
+   * re-points --primary / --ring / --accent-foreground for both light and dark.
+   * Two-class selectors (`.dark.accent-x`) out-specify the single-class `.dark`.
+   */
+  :root.accent-blue   { --primary: 221 83% 53%; --ring: 221 83% 53%; --accent: 221 90% 96%; --accent-foreground: 221 83% 40%; }
+  .dark.accent-blue   { --primary: 217 85% 62%; --ring: 217 85% 62%; --accent: 217 25% 18%; --accent-foreground: 217 90% 76%; }
+  :root.accent-violet { --primary: 262 74% 52%; --ring: 262 74% 52%; --accent: 262 80% 96%; --accent-foreground: 262 74% 42%; }
+  .dark.accent-violet { --primary: 262 78% 68%; --ring: 262 78% 68%; --accent: 262 25% 20%; --accent-foreground: 262 80% 80%; }
+  :root.accent-rose   { --primary: 342 72% 48%; --ring: 342 72% 48%; --accent: 342 80% 96%; --accent-foreground: 342 72% 40%; }
+  .dark.accent-rose   { --primary: 342 74% 62%; --ring: 342 74% 62%; --accent: 342 25% 20%; --accent-foreground: 342 80% 78%; }
+  :root.accent-amber  { --primary: 32 90% 42%;  --ring: 32 90% 42%;  --accent: 38 90% 94%;  --accent-foreground: 32 90% 30%; }
+  .dark.accent-amber  { --primary: 38 92% 55%;  --ring: 38 92% 55%;  --accent: 38 30% 18%;  --accent-foreground: 38 92% 70%; }
+
+  /* High-contrast mode (Settings → Accessibility): stronger borders + secondary
+   * text for low-vision users, without changing the layout or primary palette. */
+  :root.high-contrast { --border: 215 30% 40%; --input: 215 30% 40%; --muted-foreground: 215 28% 30%; }
+  .dark.high-contrast { --border: 210 30% 68%; --input: 210 30% 68%; --muted-foreground: 210 30% 82%; }
 }
 
 @layer base {
@@ -142,7 +162,8 @@
     background-clip: content-box;
   }
 
-  /* Respect users who prefer reduced motion. */
+  /* Respect users who prefer reduced motion — either the OS setting or the manual
+   * toggle in Settings → Accessibility (which adds `reduce-motion` to <html>). */
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
@@ -150,5 +171,12 @@
       animation-duration: 0.001ms !important;
       transition-duration: 0.001ms !important;
     }
+  }
+  :root.reduce-motion *,
+  :root.reduce-motion *::before,
+  :root.reduce-motion *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
   }
 }

@@ -10,6 +10,9 @@ import type { AnimalRepository } from "@/application/ports/animal-repository";
 import type { ObservationRepository } from "@/application/ports/observation-repository";
 import type { TimelineEventRepository } from "@/application/ports/timeline-event-repository";
 import type { MRISessionRepository } from "@/application/ports/mri-session-repository";
+import type { HistologySessionRepository } from "@/application/ports/histology-session-repository";
+import type { BiomarkerSampleRepository } from "@/application/ports/biomarker-sample-repository";
+import type { BiomarkerResultRepository } from "@/application/ports/biomarker-result-repository";
 import type { ResearchAssetRepository } from "@/application/ports/research-asset-repository";
 import type { StorageRepository } from "@/application/ports/storage-repository";
 import type { ProtocolTemplateRepository } from "@/application/ports/protocol-template-repository";
@@ -20,6 +23,9 @@ import type { Animal } from "@/domain/entities/animal";
 import type { Observation } from "@/domain/entities/observation";
 import type { TimelineEvent } from "@/domain/entities/timeline-event";
 import type { MRISession } from "@/domain/entities/mri-session";
+import type { HistologySession } from "@/domain/entities/histology-session";
+import type { BiomarkerSample } from "@/domain/entities/biomarker-sample";
+import type { BiomarkerResult } from "@/domain/entities/biomarker-result";
 import type {
   ResearchAsset,
   ResearchAssetOwnerType,
@@ -44,6 +50,9 @@ class MemoryDb {
   observations = new Map<string, Observation>();
   events = new Map<string, TimelineEvent>();
   sessions = new Map<string, MRISession>();
+  histologySessions = new Map<string, HistologySession>();
+  biomarkerSamples = new Map<string, BiomarkerSample>();
+  biomarkerResults = new Map<string, BiomarkerResult>();
   assets = new Map<string, ResearchAsset>();
   files = new Map<string, StoredFile>();
   annotations = new Map<string, Annotation>();
@@ -166,6 +175,72 @@ function makeSessionRepo(db: MemoryDb): MRISessionRepository {
     },
     async delete(id) {
       db.sessions.delete(id);
+    },
+  };
+}
+
+function makeHistologyRepo(db: MemoryDb): HistologySessionRepository {
+  return {
+    async listByTimelineEvent(timelineEventId) {
+      return [...db.histologySessions.values()].filter(
+        (s) => s.timelineEventId === timelineEventId,
+      );
+    },
+    async getById(id) {
+      return db.histologySessions.get(id) ?? null;
+    },
+    async create(session) {
+      db.histologySessions.set(session.id, session);
+    },
+    async update(session) {
+      db.histologySessions.set(session.id, session);
+    },
+    async delete(id) {
+      db.histologySessions.delete(id);
+    },
+  };
+}
+
+function makeBiomarkerSampleRepo(db: MemoryDb): BiomarkerSampleRepository {
+  return {
+    async listByTimelineEvent(timelineEventId) {
+      return [...db.biomarkerSamples.values()].filter(
+        (s) => s.timelineEventId === timelineEventId,
+      );
+    },
+    async getById(id) {
+      return db.biomarkerSamples.get(id) ?? null;
+    },
+    async create(sample) {
+      db.biomarkerSamples.set(sample.id, sample);
+    },
+    async update(sample) {
+      db.biomarkerSamples.set(sample.id, sample);
+    },
+    async delete(id) {
+      db.biomarkerSamples.delete(id);
+    },
+  };
+}
+
+function makeBiomarkerResultRepo(db: MemoryDb): BiomarkerResultRepository {
+  return {
+    async listBySample(biomarkerSampleId) {
+      return [...db.biomarkerResults.values()].filter(
+        (r) => r.biomarkerSampleId === biomarkerSampleId,
+      );
+    },
+    async getById(id) {
+      return db.biomarkerResults.get(id) ?? null;
+    },
+    async create(result) {
+      db.biomarkerResults.set(result.id, result);
+    },
+    async update(result) {
+      db.biomarkerResults.set(result.id, result);
+    },
+    async delete(id) {
+      db.biomarkerResults.delete(id);
     },
   };
 }
@@ -425,6 +500,56 @@ function asset(id: string, ownerId: string): ResearchAsset {
     updatedAt: T,
   };
 }
+function histologySession(
+  id: string,
+  timelineEventId: string,
+): HistologySession {
+  return {
+    id,
+    timelineEventId,
+    stain: "he",
+    acquisitionDate: "2026-07-11",
+    createdAt: T,
+    updatedAt: T,
+  };
+}
+function histologyAsset(id: string, ownerId: string): ResearchAsset {
+  return {
+    id,
+    ownerType: "histology_session",
+    ownerId,
+    assetType: "histology_image",
+    title: `Asset ${id}`,
+    status: "attached",
+    createdAt: T,
+    updatedAt: T,
+  };
+}
+function biomarkerSample(
+  id: string,
+  timelineEventId: string,
+): BiomarkerSample {
+  return {
+    id,
+    timelineEventId,
+    sampleType: "blood",
+    collectionDate: "2026-07-11",
+    createdAt: T,
+    updatedAt: T,
+  };
+}
+function biomarkerResult(
+  id: string,
+  biomarkerSampleId: string,
+): BiomarkerResult {
+  return {
+    id,
+    biomarkerSampleId,
+    biomarkerName: "NfL",
+    value: "45.2",
+    createdAt: T,
+  };
+}
 function file(id: string, researchAssetId: string): StoredFile {
   return {
     id,
@@ -488,6 +613,9 @@ beforeEach(() => {
     observations: makeObservationRepo(db),
     timelineEvents: makeTimelineRepo(db),
     mriSessions: makeSessionRepo(db),
+    histologySessions: makeHistologyRepo(db),
+    biomarkerSamples: makeBiomarkerSampleRepo(db),
+    biomarkerResults: makeBiomarkerResultRepo(db),
     researchAssets: makeAssetRepo(db),
     storage: makeStorageRepo(db),
     annotations: makeAnnotationRepo(db),
@@ -649,6 +777,77 @@ describe("DeletionService — partial deletes", () => {
     expect(db.observations.has("O1")).toBe(false);
     expect(db.observations.has("O2")).toBe(true);
     expect(fileStore.removed).toHaveLength(0);
+  });
+});
+
+describe("DeletionService — histology sessions", () => {
+  // A histopathology event on A2 with a histology session, asset, file, and
+  // annotation. Added per-test (not in the shared graph) so the MRI-centric
+  // counts elsewhere stay stable.
+  function seedHistology() {
+    db.events.set("EH", event("EH", "A2", "histopathology"));
+    db.histologySessions.set("H1", histologySession("H1", "EH"));
+    db.assets.set("HAS1", histologyAsset("HAS1", "H1"));
+    db.files.set("HF1", file("HF1", "HAS1"));
+    db.annotations.set("HAN1", annotation("HAN1", "HF1"));
+  }
+
+  it("deleteHistologySession cascades its assets, files, and annotations", async () => {
+    seedHistology();
+    await svc.deleteHistologySession("H1");
+    expect(db.histologySessions.has("H1")).toBe(false);
+    expect(db.assets.has("HAS1")).toBe(false);
+    expect(db.files.has("HF1")).toBe(false);
+    expect(db.annotations.has("HAN1")).toBe(false);
+    // The parent histopathology event survives (session delete leaves the event).
+    expect(db.events.has("EH")).toBe(true);
+    expect([...fileStore.removed]).toEqual(["images/HF1.png"]);
+  });
+
+  it("deleteTimelineEvent purges an event's histology session too", async () => {
+    seedHistology();
+    await svc.deleteTimelineEvent("EH");
+    expect(db.events.has("EH")).toBe(false);
+    expect(db.histologySessions.has("H1")).toBe(false);
+    expect(db.assets.has("HAS1")).toBe(false);
+    expect(db.files.has("HF1")).toBe(false);
+  });
+
+  it("deleteStudy cascades histology sessions along with everything else", async () => {
+    seedHistology();
+    await svc.deleteStudy("S1");
+    expect(db.histologySessions.has("H1")).toBe(false);
+    expect(db.assets.has("HAS1")).toBe(false);
+    expect(db.files.has("HF1")).toBe(false);
+    expect(db.annotations.has("HAN1")).toBe(false);
+  });
+});
+
+describe("DeletionService — biomarker samples & results", () => {
+  // A biochemical-analysis event on A2 with a biomarker sample + two results.
+  // Added per-test (not in the shared graph) so other counts stay stable.
+  function seedBiomarkers() {
+    db.events.set("EB", event("EB", "A2", "biochemical_analysis"));
+    db.biomarkerSamples.set("BS1", biomarkerSample("BS1", "EB"));
+    db.biomarkerResults.set("BR1", biomarkerResult("BR1", "BS1"));
+    db.biomarkerResults.set("BR2", biomarkerResult("BR2", "BS1"));
+  }
+
+  it("deleteTimelineEvent purges an event's biomarker samples and their results", async () => {
+    seedBiomarkers();
+    await svc.deleteTimelineEvent("EB");
+    expect(db.events.has("EB")).toBe(false);
+    expect(db.biomarkerSamples.has("BS1")).toBe(false);
+    expect(db.biomarkerResults.has("BR1")).toBe(false);
+    expect(db.biomarkerResults.has("BR2")).toBe(false);
+  });
+
+  it("deleteStudy cascades biomarker samples + results along with everything else", async () => {
+    seedBiomarkers();
+    await svc.deleteStudy("S1");
+    expect(db.biomarkerSamples.has("BS1")).toBe(false);
+    expect(db.biomarkerResults.has("BR1")).toBe(false);
+    expect(db.biomarkerResults.has("BR2")).toBe(false);
   });
 });
 

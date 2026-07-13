@@ -5,6 +5,7 @@ import type { AnimalReader } from "@/application/ports/animal-repository";
 import type { StudyReader } from "@/application/ports/study-repository";
 import type { TimelineEventReader } from "@/application/ports/timeline-event-repository";
 import type { MRISessionReader } from "@/application/ports/mri-session-repository";
+import type { HistologySessionReader } from "@/application/ports/histology-session-repository";
 import { NotFoundError } from "@/application/errors";
 import { loadWritableAssetOwner } from "./load-writable-asset-owner";
 
@@ -25,6 +26,7 @@ export async function loadWritableStoredFile(
     storage: StorageRepository;
     researchAssets: ResearchAssetRepository;
     mriSessions: MRISessionReader;
+    histologySessions: HistologySessionReader;
     timelineEvents: TimelineEventReader;
     animals: AnimalReader;
     studies: StudyReader;

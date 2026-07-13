@@ -5,15 +5,21 @@ import { PanelLeft } from "lucide-react";
 import { Button } from "@/presentation/components/ui/button";
 import { ThemeToggle } from "@/presentation/components/theme-toggle";
 import { GlobalSearchBox } from "@/presentation/features/search/global-search-box";
+import { useSettings } from "@/shared/hooks/use-settings";
 import { AppSidebar } from "./app-sidebar";
 
 const COLLAPSE_KEY = "als.sidebar.collapsed";
 
-function readCollapsed(): boolean {
+/**
+ * The remembered collapse choice, or `null` if the user hasn't toggled it yet — in
+ * which case the caller falls back to the "sidebar default collapsed" setting.
+ */
+function readCollapsed(): boolean | null {
   try {
-    return localStorage.getItem(COLLAPSE_KEY) === "1";
+    const raw = localStorage.getItem(COLLAPSE_KEY);
+    return raw === null ? null : raw === "1";
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -27,7 +33,11 @@ function readCollapsed(): boolean {
  * both narrow laptops and wide desktop monitors. The choice is remembered.
  */
 export function AppShell() {
-  const [collapsed, setCollapsed] = useState(readCollapsed);
+  const { settings } = useSettings();
+  // Remembered explicit choice wins; otherwise fall back to the Settings default.
+  const [collapsed, setCollapsed] = useState(
+    () => readCollapsed() ?? settings.sidebarDefaultCollapsed,
+  );
 
   const toggle = useCallback(() => {
     setCollapsed((current) => {

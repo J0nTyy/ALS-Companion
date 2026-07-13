@@ -102,10 +102,53 @@ export function csvExporter(pkg: PublicationPackage): ExportFile[] {
     ]),
   );
 
+  const histologySessions = toCsv(
+    ["id", "timeline_event_id", "stain", "tissue", "magnification", "acquisition_date", "operator", "notes"],
+    pkg.histologySessions.map((h) => [
+      h.id,
+      h.timelineEventId,
+      h.stain,
+      h.tissue ?? "",
+      h.magnification ?? "",
+      h.acquisitionDate,
+      h.operator ?? "",
+      h.notes ?? "",
+    ]),
+  );
+
+  const biomarkerSamples = toCsv(
+    ["id", "timeline_event_id", "sample_type", "collection_date", "operator", "notes"],
+    pkg.biomarkerSamples.map((s) => [
+      s.id,
+      s.timelineEventId,
+      s.sampleType,
+      s.collectionDate,
+      s.operator ?? "",
+      s.notes ?? "",
+    ]),
+  );
+
+  const biomarkerResults = toCsv(
+    ["id", "biomarker_sample_id", "biomarker_name", "value", "unit", "method", "notes", "created_at"],
+    pkg.biomarkerResults.map((r) => [
+      r.id,
+      r.biomarkerSampleId,
+      r.biomarkerName,
+      r.value,
+      r.unit ?? "",
+      r.method ?? "",
+      r.notes ?? "",
+      r.createdAt,
+    ]),
+  );
+
   return [
     textFile("animals.csv", animals),
     textFile("observations.csv", observations),
     textFile("timeline.csv", timeline),
+    textFile("histology_sessions.csv", histologySessions),
+    textFile("biomarker_samples.csv", biomarkerSamples),
+    textFile("biomarker_results.csv", biomarkerResults),
     textFile("annotations.csv", annotations),
     textFile("measurements.csv", measurements),
     textFile("annotation_links.csv", annotationLinks),

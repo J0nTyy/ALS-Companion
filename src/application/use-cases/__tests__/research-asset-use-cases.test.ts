@@ -112,6 +112,9 @@ function makeDeps(options: DepsOptions = {}): ResearchAssetUseCaseDeps {
     mriSessions: mriReader(
       options.session !== undefined ? options.session : mriSession,
     ),
+    // These tests exercise the mri_session owner path; the histology reader is not
+    // consulted, so a null stub satisfies the deps bundle.
+    histologySessions: { async getById() { return null; } },
     timelineEvents: timelineReader(
       options.event !== undefined ? options.event : timelineEvent,
     ),

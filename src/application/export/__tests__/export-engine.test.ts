@@ -16,10 +16,10 @@ describe("exportPackage (ExportEngine)", () => {
     }
   });
 
-  it("produces a single file for pdf/docx/json and six for csv", () => {
+  it("produces a single file for pdf/docx/json and nine for csv", () => {
     expect(exportPackage(pkg, "pdf").files).toHaveLength(1);
     expect(exportPackage(pkg, "docx").files).toHaveLength(1);
     expect(exportPackage(pkg, "json").files).toHaveLength(1);
-    expect(exportPackage(pkg, "csv").files).toHaveLength(6);
+    expect(exportPackage(pkg, "csv").files).toHaveLength(9);
   });
 });

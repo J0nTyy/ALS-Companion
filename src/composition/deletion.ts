@@ -15,6 +15,9 @@ import { SqliteAnimalRepository } from "@/infrastructure/repositories/sqlite-ani
 import { SqliteObservationRepository } from "@/infrastructure/repositories/sqlite-observation-repository";
 import { SqliteTimelineEventRepository } from "@/infrastructure/repositories/sqlite-timeline-event-repository";
 import { SqliteMriSessionRepository } from "@/infrastructure/repositories/sqlite-mri-session-repository";
+import { SqliteHistologySessionRepository } from "@/infrastructure/repositories/sqlite-histology-session-repository";
+import { SqliteBiomarkerSampleRepository } from "@/infrastructure/repositories/sqlite-biomarker-sample-repository";
+import { SqliteBiomarkerResultRepository } from "@/infrastructure/repositories/sqlite-biomarker-result-repository";
 import { SqliteResearchAssetRepository } from "@/infrastructure/repositories/sqlite-research-asset-repository";
 import { SqliteStorageRepository } from "@/infrastructure/repositories/sqlite-storage-repository";
 import { SqliteAnnotationRepository } from "@/infrastructure/repositories/sqlite-annotation-repository";
@@ -28,6 +31,9 @@ export const deletionService: DeletionService = createDeletionService({
   observations: new SqliteObservationRepository(),
   timelineEvents: new SqliteTimelineEventRepository(),
   mriSessions: new SqliteMriSessionRepository(),
+  histologySessions: new SqliteHistologySessionRepository(),
+  biomarkerSamples: new SqliteBiomarkerSampleRepository(),
+  biomarkerResults: new SqliteBiomarkerResultRepository(),
   researchAssets: new SqliteResearchAssetRepository(),
   storage: new SqliteStorageRepository(),
   annotations: new SqliteAnnotationRepository(),

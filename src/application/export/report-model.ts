@@ -10,6 +10,8 @@ import {
 } from "@/domain/entities/annotation";
 import { ANNOTATION_RELATIONSHIP_TYPE_META } from "@/domain/entities/annotation-link";
 import { MRI_MODALITY_META } from "@/domain/entities/mri-session";
+import { HISTOLOGY_STAIN_META } from "@/domain/entities/histology-session";
+import { BIOMARKER_SAMPLE_TYPE_META } from "@/domain/entities/biomarker-sample";
 import { ANIMAL_SEX_META } from "@/domain/entities/animal";
 import { OBSERVATION_KIND_META } from "@/domain/entities/observation";
 import {
@@ -64,6 +66,12 @@ export function buildReportModel(pkg: PublicationPackage): ReportDocument {
     pkg.timelineEvents.map((e) => [e.id, animalName.get(e.animalId) ?? DASH]),
   );
   const fileName = new Map(pkg.storedFiles.map((f) => [f.id, f.originalName]));
+  const sampleLabel = new Map(
+    pkg.biomarkerSamples.map((s) => [
+      s.id,
+      `${BIOMARKER_SAMPLE_TYPE_META[s.sampleType].label} · ${dateOnly(s.collectionDate)}`,
+    ]),
+  );
   const annotationById = new Map<string, Annotation>(
     pkg.annotations.map((a) => [a.id, a]),
   );
@@ -183,6 +191,64 @@ export function buildReportModel(pkg: PublicationPackage): ReportDocument {
           opt(m.operator),
         ]),
         "No MRI sessions included.",
+      ),
+    ],
+  });
+
+  // Histology sessions
+  sections.push({
+    heading: "Histology sessions",
+    blocks: [
+      table(
+        ["Stain", "Tissue", "Magnification", "Acquired", "Operator"],
+        pkg.histologySessions.map((h) => [
+          HISTOLOGY_STAIN_META[h.stain].label,
+          opt(h.tissue),
+          opt(h.magnification),
+          dateOnly(h.acquisitionDate),
+          opt(h.operator),
+        ]),
+        "No histology sessions included.",
+      ),
+    ],
+  });
+
+  // Biomarker samples
+  sections.push({
+    heading: "Biomarker samples",
+    blocks: [
+      table(
+        ["Sample type", "Collected", "Operator", "Notes"],
+        pkg.biomarkerSamples.map((s) => [
+          BIOMARKER_SAMPLE_TYPE_META[s.sampleType].label,
+          dateOnly(s.collectionDate),
+          opt(s.operator),
+          opt(s.notes),
+        ]),
+        "No biomarker samples included.",
+      ),
+    ],
+  });
+
+  // Biomarker results (laboratory values — captured, not analyzed)
+  sections.push({
+    heading: "Biomarker results",
+    blocks: [
+      {
+        kind: "note",
+        text: "Laboratory values recorded verbatim — not normalized or analyzed.",
+      },
+      table(
+        ["Sample", "Biomarker", "Value", "Unit", "Method", "Notes"],
+        pkg.biomarkerResults.map((r) => [
+          sampleLabel.get(r.biomarkerSampleId) ?? DASH,
+          r.biomarkerName,
+          r.value,
+          opt(r.unit),
+          opt(r.method),
+          opt(r.notes),
+        ]),
+        "No biomarker results included.",
       ),
     ],
   });

@@ -16,6 +16,7 @@ import {
 } from "@/application/services/research-asset-service";
 import { SqliteResearchAssetRepository } from "@/infrastructure/repositories/sqlite-research-asset-repository";
 import { SqliteMriSessionRepository } from "@/infrastructure/repositories/sqlite-mri-session-repository";
+import { SqliteHistologySessionRepository } from "@/infrastructure/repositories/sqlite-histology-session-repository";
 import { SqliteTimelineEventRepository } from "@/infrastructure/repositories/sqlite-timeline-event-repository";
 import { SqliteAnimalRepository } from "@/infrastructure/repositories/sqlite-animal-repository";
 import { SqliteStudyRepository } from "@/infrastructure/repositories/sqlite-study-repository";
@@ -25,9 +26,10 @@ import { uuidIdGenerator } from "@/infrastructure/system/uuid-id-generator";
 export const researchAssetsService: ResearchAssetService =
   createResearchAssetService({
     repository: new SqliteResearchAssetRepository(),
-    // Read-only owner lookup: for an "mri_session" owner the writable-parent
-    // check walks MRISession → TimelineEvent → Animal → Study.
+    // Read-only owner lookup: the writable-parent check dispatches on owner type
+    // and walks Session → TimelineEvent → Animal → Study (MRI or histology).
     mriSessions: new SqliteMriSessionRepository(),
+    histologySessions: new SqliteHistologySessionRepository(),
     timelineEvents: new SqliteTimelineEventRepository(),
     animals: new SqliteAnimalRepository(),
     studies: new SqliteStudyRepository(),
