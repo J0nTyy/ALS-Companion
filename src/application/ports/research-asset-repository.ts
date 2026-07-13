@@ -33,4 +33,7 @@ export interface ResearchAssetRepository {
    * @throws NotFoundError if no asset with `asset.id` exists.
    */
   update(asset: ResearchAsset): Promise<void>;
+
+  /** Permanently delete a research-asset row (v1.4). Idempotent; stored files removed in the app layer. */
+  delete(id: string): Promise<void>;
 }

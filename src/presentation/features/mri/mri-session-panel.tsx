@@ -11,6 +11,7 @@ import {
 import { MriSessionDetails } from "./components/mri-session-details";
 import { useMriSessions } from "./use-mri-sessions";
 import { useMriSessionService } from "./mri-session-service-context";
+import { useDeletionService } from "@/presentation/features/deletion/deletion-service-context";
 
 type PanelMode =
   | { kind: "list" }
@@ -30,6 +31,7 @@ export function MriSessionPanel({
   readOnly?: boolean;
 }) {
   const service = useMriSessionService();
+  const deletion = useDeletionService();
   const { state, reload } = useMriSessions(timelineEventId);
   const [mode, setMode] = useState<PanelMode>({ kind: "list" });
 
@@ -153,7 +155,13 @@ export function MriSessionPanel({
                 readOnly={readOnly}
                 {...(readOnly
                   ? {}
-                  : { onEdit: () => setMode({ kind: "edit", session }) })}
+                  : {
+                      onEdit: () => setMode({ kind: "edit", session }),
+                      onDelete: async () => {
+                        await deletion.deleteMriSession(session.id);
+                        await reload();
+                      },
+                    })}
               />
             ))}
             {readOnly ? null : <div>{addButton}</div>}

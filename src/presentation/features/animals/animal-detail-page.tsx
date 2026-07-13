@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { AlertTriangle, ArrowLeft } from "lucide-react";
 
@@ -22,6 +22,13 @@ import { useStudiesService } from "@/presentation/features/studies/studies-servi
 import { useAnimalsService } from "@/presentation/features/animals/animals-service-context";
 import { ObservationsSection } from "@/presentation/features/observations/observations-section";
 import { TimelineSection } from "@/presentation/features/timeline/timeline-section";
+import {
+  ConfirmDeleteButton,
+  type ConfirmDeleteHandle,
+} from "@/presentation/components/confirm-delete-button";
+import { useDeletionService } from "@/presentation/features/deletion/deletion-service-context";
+import { useContextMenu } from "@/presentation/features/context-menu/context-menu-context";
+import { buildAnimalContextMenu } from "@/presentation/features/context-menu/menus";
 
 type DetailState =
   | { status: "unavailable" }
@@ -43,6 +50,9 @@ export function AnimalDetailPage() {
   const navigate = useNavigate();
   const studiesService = useStudiesService();
   const animalsService = useAnimalsService();
+  const deletion = useDeletionService();
+  const contextMenu = useContextMenu();
+  const deleteRef = useRef<ConfirmDeleteHandle>(null);
 
   const [state, setState] = useState<DetailState>(() =>
     isTauri() ? { status: "loading" } : { status: "unavailable" },
@@ -157,9 +167,39 @@ export function AnimalDetailPage() {
       />
 
       <div className="max-w-2xl space-y-6">
-        <Card>
+        <Card
+          onContextMenu={(e) =>
+            contextMenu.open(
+              e,
+              buildAnimalContextMenu({
+                onDelete: () => deleteRef.current?.open(),
+              }),
+            )
+          }
+        >
           <CardHeader>
-            <CardTitle>Animal details</CardTitle>
+            <div className="flex items-center justify-between gap-3">
+              <CardTitle>Animal details</CardTitle>
+              <ConfirmDeleteButton
+                ref={deleteRef}
+                triggerLabel="Delete animal"
+                title="Delete this animal permanently?"
+                description={
+                  <>
+                    This permanently removes{" "}
+                    <span className="font-medium text-foreground">
+                      {animal.animalIdentifier}
+                    </span>{" "}
+                    and all of its observations, timeline events, MRI sessions,
+                    and attached image files. This action cannot be undone.
+                  </>
+                }
+                onConfirm={async () => {
+                  await deletion.deleteAnimal(animal.id);
+                  navigate(`/studies/${study.id}`);
+                }}
+              />
+            </div>
           </CardHeader>
           <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <DetailRow label="Sex" value={ANIMAL_SEX_META[animal.sex].label} />

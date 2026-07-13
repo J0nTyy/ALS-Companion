@@ -35,4 +35,7 @@ export interface MRISessionRepository extends MRISessionReader {
    * @throws NotFoundError if no session with `session.id` exists.
    */
   update(session: MRISession): Promise<void>;
+
+  /** Permanently delete an MRI-session row (v1.4). Idempotent; cascade in the app layer. */
+  delete(id: string): Promise<void>;
 }

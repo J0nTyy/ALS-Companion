@@ -13,6 +13,7 @@ import {
 import { ObservationListItem } from "./components/observation-list-item";
 import { useObservations } from "./use-observations";
 import { useObservationsService } from "./observations-service-context";
+import { useDeletionService } from "@/presentation/features/deletion/deletion-service-context";
 
 type SectionMode =
   | { kind: "list" }
@@ -39,6 +40,7 @@ export function ObservationsSection({
 }) {
   const headingId = useId();
   const service = useObservationsService();
+  const deletion = useDeletionService();
   const { state, reload } = useObservations(animalId);
   const [mode, setMode] = useState<SectionMode>({ kind: "list" });
 
@@ -191,6 +193,10 @@ export function ObservationsSection({
                     : {
                         onEdit: () =>
                           setMode({ kind: "edit", observation }),
+                        onDelete: async () => {
+                          await deletion.deleteObservation(observation.id);
+                          await reload();
+                        },
                       })}
                 />
               </li>

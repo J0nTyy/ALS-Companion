@@ -147,4 +147,9 @@ export class SqliteResearchAssetRepository
       throw new NotFoundError(RESEARCH_ASSET_NOT_FOUND);
     }
   }
+
+  async delete(id: string): Promise<void> {
+    const db = await getDatabase();
+    await db.execute(`DELETE FROM research_assets WHERE id = $1`, [id]);
+  }
 }

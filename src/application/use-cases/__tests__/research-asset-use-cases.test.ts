@@ -42,6 +42,9 @@ class FakeResearchAssetRepository implements ResearchAssetRepository {
     }
     this.assets.set(asset.id, asset);
   }
+  async delete(id: string): Promise<void> {
+    this.assets.delete(id);
+  }
 }
 
 const mriSession: MRISession = {

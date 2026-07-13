@@ -1,9 +1,11 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Pencil } from "lucide-react";
 
 import { ANIMAL_SEX_META, type Animal } from "@/domain/entities/animal";
 import { Badge } from "@/presentation/components/ui/badge";
 import { Button } from "@/presentation/components/ui/button";
+import { useContextMenu } from "@/presentation/features/context-menu/context-menu-context";
+import { buildAnimalContextMenu } from "@/presentation/features/context-menu/menus";
 import { formatDateOnly } from "@/shared/lib/format";
 
 /**
@@ -21,12 +23,26 @@ export function AnimalListItem({
   to: string;
   onEdit?: () => void;
 }) {
+  const navigate = useNavigate();
+  const contextMenu = useContextMenu();
+
   const meta: string[] = [];
   if (animal.mutation) meta.push(animal.mutation);
   if (animal.dateOfBirth) meta.push(`Born ${formatDateOnly(animal.dateOfBirth)}`);
 
   return (
-    <div className="flex items-center gap-4 rounded-lg border border-border bg-card px-5 py-4">
+    <div
+      className="flex items-center gap-4 rounded-lg border border-border bg-card px-5 py-4"
+      onContextMenu={(e) =>
+        contextMenu.open(
+          e,
+          buildAnimalContextMenu({
+            onOpen: () => navigate(to),
+            ...(onEdit ? { onEdit } : {}),
+          }),
+        )
+      }
+    >
       <Link
         to={to}
         aria-label={`View ${animal.animalIdentifier}`}

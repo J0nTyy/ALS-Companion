@@ -147,4 +147,9 @@ export class SqliteTimelineEventRepository
       throw new NotFoundError(TIMELINE_EVENT_NOT_FOUND);
     }
   }
+
+  async delete(id: string): Promise<void> {
+    const db = await getDatabase();
+    await db.execute(`DELETE FROM timeline_events WHERE id = $1`, [id]);
+  }
 }

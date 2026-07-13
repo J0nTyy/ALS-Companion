@@ -12,6 +12,10 @@
 
 @layer base {
   :root {
+    /* Tell the WebView these controls are light-themed, so native <select>
+     * popups, <option> text, date pickers, and scrollbars render legibly. */
+    color-scheme: light;
+
     --background: 210 40% 99%;
     --foreground: 215 28% 17%;
 
@@ -46,10 +50,15 @@
     --input: 214 25% 91%;
     --ring: 187 92% 31%;
 
-    --radius: 0.75rem;
+    /* Slightly tighter corners give the compact overhaul a crisper feel. */
+    --radius: 0.625rem;
   }
 
   .dark {
+    /* Dark counterpart — makes native dropdown option lists and pickers dark
+     * with legible light text instead of the OS default light-on-light. */
+    color-scheme: dark;
+
     --background: 222 32% 9%;
     --foreground: 210 30% 92%;
 
@@ -100,6 +109,21 @@
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     text-rendering: optimizeLegibility;
+  }
+
+  /* Highlighted text stays clearly readable in both themes (the browser default
+   * can wash out to low contrast, especially in dark mode). */
+  ::selection {
+    background-color: hsl(var(--primary) / 0.28);
+    color: hsl(var(--foreground));
+  }
+
+  /* Native dropdown option lists: guarantee legible, theme-matched colors even
+   * where the platform would otherwise draw its own. Pairs with `color-scheme`. */
+  select option,
+  select optgroup {
+    background-color: hsl(var(--popover));
+    color: hsl(var(--popover-foreground));
   }
 
   /* Comfortable, quiet scrollbars that match the theme. */

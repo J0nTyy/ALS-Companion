@@ -15,6 +15,7 @@ import { TimelineEventItem } from "./components/timeline-event-item";
 import { MriSessionPanel } from "@/presentation/features/mri/mri-session-panel";
 import { useTimelineEvents } from "./use-timeline-events";
 import { useTimelineEventsService } from "./timeline-events-service-context";
+import { useDeletionService } from "@/presentation/features/deletion/deletion-service-context";
 
 type SectionMode =
   | { kind: "list" }
@@ -36,9 +37,9 @@ function newestPlannedId(events: readonly TimelineEvent[]): string | undefined {
 /**
  * The experiment timeline for one animal (contextual — no sidebar item). Lists
  * workflow events with upcoming planned steps first, distinguishes completed
- * events, and provides add / edit / mark-complete. No delete — history is
- * permanent. When `readOnly` (archived study), events stay viewable but write
- * affordances are hidden (the application layer also refuses such writes).
+ * events, and provides add / edit / mark-complete / delete. When `readOnly`
+ * (archived study), events stay viewable but write affordances are hidden (the
+ * application layer also refuses such writes).
  */
 export function TimelineSection({
   animalId,
@@ -51,6 +52,7 @@ export function TimelineSection({
 }) {
   const headingId = useId();
   const service = useTimelineEventsService();
+  const deletion = useDeletionService();
   const { state, reload } = useTimelineEvents(animalId);
   const [mode, setMode] = useState<SectionMode>({ kind: "list" });
 
@@ -226,6 +228,10 @@ export function TimelineSection({
                     : {
                         onEdit: () => setMode({ kind: "edit", event }),
                         onMarkComplete: () => void handleMarkComplete(event),
+                        onDelete: async () => {
+                          await deletion.deleteTimelineEvent(event.id);
+                          await reload();
+                        },
                       })}
                 />
                 {event.category === "mri" ? (

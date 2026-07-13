@@ -1,7 +1,9 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 
 import type { SearchResultGroup } from "@/application/ports/search";
+import { useContextMenu } from "@/presentation/features/context-menu/context-menu-context";
+import { buildSearchResultContextMenu } from "@/presentation/features/context-menu/menus";
 
 /**
  * Renders search results grouped by entity type. Each hit is a link to the
@@ -9,6 +11,8 @@ import type { SearchResultGroup } from "@/application/ports/search";
  * presentational — grouping and ordering are decided by the search service.
  */
 export function SearchResultList({ groups }: { groups: SearchResultGroup[] }) {
+  const navigate = useNavigate();
+  const contextMenu = useContextMenu();
   return (
     <div className="space-y-8">
       {groups.map((group) => (
@@ -27,6 +31,14 @@ export function SearchResultList({ groups }: { groups: SearchResultGroup[] }) {
               <li key={`${hit.type}:${hit.id}`}>
                 <Link
                   to={hit.route}
+                  onContextMenu={(e) =>
+                    contextMenu.open(
+                      e,
+                      buildSearchResultContextMenu({
+                        onOpen: () => navigate(hit.route),
+                      }),
+                    )
+                  }
                   className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none"
                 >
                   <div className="min-w-0 flex-1">

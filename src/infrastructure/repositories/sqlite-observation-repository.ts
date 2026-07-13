@@ -139,4 +139,9 @@ export class SqliteObservationRepository
       throw new NotFoundError(OBSERVATION_NOT_FOUND);
     }
   }
+
+  async delete(id: string): Promise<void> {
+    const db = await getDatabase();
+    await db.execute(`DELETE FROM observations WHERE id = $1`, [id]);
+  }
 }

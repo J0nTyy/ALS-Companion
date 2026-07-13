@@ -131,4 +131,9 @@ export class SqliteStudyRepository
       throw new NotFoundError(STUDY_NOT_FOUND);
     }
   }
+
+  async delete(id: string): Promise<void> {
+    const db = await getDatabase();
+    await db.execute(`DELETE FROM studies WHERE id = $1`, [id]);
+  }
 }

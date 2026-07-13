@@ -187,7 +187,83 @@ fn migrations() -> Vec<Migration> {
                 ON stored_files (research_asset_id, created_at DESC);",
             kind: MigrationKind::Up,
         },
+        // An annotation is a researcher-drawn mark on a stored image (a real FK —
+        // stored_files has a primary key). It is the persistent foundation of the
+        // imaging-analysis chain: StoredFile → Annotation → (future) Measurements
+        // → (future) AI. `geometry` is stored as an OPAQUE, EXTENSIBLE serialized
+        // string (JSON of normalized [0,1] coordinates) rather than fixed
+        // coordinate columns, so new annotation shapes (polygon, freehand, ROI, …)
+        // and future measurement layers need no schema redesign. label and notes
+        // are optional.
+        Migration {
+            version: 9,
+            description: "create_annotations_table",
+            sql: "CREATE TABLE IF NOT EXISTS annotations (
+                id              TEXT PRIMARY KEY NOT NULL,
+                stored_file_id  TEXT NOT NULL,
+                annotation_type TEXT NOT NULL,
+                label           TEXT,
+                geometry        TEXT NOT NULL,
+                notes           TEXT,
+                created_at      TEXT NOT NULL,
+                updated_at      TEXT NOT NULL,
+                FOREIGN KEY (stored_file_id) REFERENCES stored_files (id)
+            );
+            CREATE INDEX IF NOT EXISTS idx_annotations_stored_file
+                ON annotations (stored_file_id, created_at);",
+            kind: MigrationKind::Up,
+        },
+        // A researcher-created, DIRECTIONAL relationship between two annotations
+        // (both real FKs → annotations) that represent the same structure across
+        // different MRI sessions — the basis for longitudinal progression study.
+        // These are human-entered knowledge: there is no automatic matching or AI.
+        // Future progression/growth/statistics/AI modules consume these links
+        // rather than inferring correspondence.
+        Migration {
+            version: 10,
+            description: "create_annotation_links_table",
+            sql: "CREATE TABLE IF NOT EXISTS annotation_links (
+                id                   TEXT PRIMARY KEY NOT NULL,
+                source_annotation_id TEXT NOT NULL,
+                target_annotation_id TEXT NOT NULL,
+                relationship_type    TEXT NOT NULL,
+                notes                TEXT,
+                created_at           TEXT NOT NULL,
+                FOREIGN KEY (source_annotation_id) REFERENCES annotations (id),
+                FOREIGN KEY (target_annotation_id) REFERENCES annotations (id)
+            );
+            CREATE INDEX IF NOT EXISTS idx_annotation_links_source
+                ON annotation_links (source_annotation_id);
+            CREATE INDEX IF NOT EXISTS idx_annotation_links_target
+                ON annotation_links (target_annotation_id);",
+            kind: MigrationKind::Up,
+        },
     ]
+}
+
+/// Resolve a caller-supplied RELATIVE path to an absolute path inside the app's
+/// managed data directory, rejecting anything that could escape it (absolute paths
+/// or a `..` component). Shared path-traversal guard for the file commands.
+fn resolve_managed_path(
+    app: &tauri::AppHandle,
+    relative_path: &str,
+) -> Result<std::path::PathBuf, String> {
+    use std::path::{Component, Path};
+    use tauri::Manager;
+
+    let rel = Path::new(relative_path);
+    if rel.is_absolute()
+        || rel
+            .components()
+            .any(|c| matches!(c, Component::ParentDir | Component::RootDir | Component::Prefix(_)))
+    {
+        return Err("Invalid storage path.".into());
+    }
+    let base = app
+        .path()
+        .app_local_data_dir()
+        .map_err(|e| format!("Could not resolve the app data directory: {e}"))?;
+    Ok(base.join(rel))
 }
 
 /// Copy a user-picked image into the app's managed data directory.
@@ -196,38 +272,74 @@ fn migrations() -> Vec<Migration> {
 /// deliberately narrow: the frontend supplies the source path (a file the user
 /// explicitly chose via the OS dialog) and a caller-controlled RELATIVE path; the
 /// destination is always resolved under `app_local_data_dir`, so the webview can
-/// never write outside the app's own storage. `relative_path` is rejected if it is
-/// absolute or contains a `..` component (path-traversal guard).
+/// never write outside the app's own storage.
 #[tauri::command]
 fn attach_image_file(
     app: tauri::AppHandle,
     source_path: String,
     relative_path: String,
 ) -> Result<(), String> {
-    use std::path::{Component, Path};
-    use tauri::Manager;
-
-    let rel = Path::new(&relative_path);
-    if rel.is_absolute()
-        || rel
-            .components()
-            .any(|c| matches!(c, Component::ParentDir | Component::RootDir | Component::Prefix(_)))
-    {
-        return Err("Invalid storage path.".into());
-    }
-
-    let base = app
-        .path()
-        .app_local_data_dir()
-        .map_err(|e| format!("Could not resolve the app data directory: {e}"))?;
-    let dest = base.join(rel);
-
+    let dest = resolve_managed_path(&app, &relative_path)?;
     if let Some(parent) = dest.parent() {
         std::fs::create_dir_all(parent)
             .map_err(|e| format!("Could not prepare the storage folder: {e}"))?;
     }
     std::fs::copy(&source_path, &dest)
         .map_err(|e| format!("Could not save the image: {e}"))?;
+    Ok(())
+}
+
+/// Remove managed image files (best-effort) after their database rows are deleted.
+/// Each path is validated by `resolve_managed_path`, so only files inside the app's
+/// own storage can be removed. A path that is already gone is not an error.
+#[tauri::command]
+fn delete_managed_files(
+    app: tauri::AppHandle,
+    relative_paths: Vec<String>,
+) -> Result<(), String> {
+    for relative_path in relative_paths {
+        let target = resolve_managed_path(&app, &relative_path)?;
+        if target.exists() {
+            std::fs::remove_file(&target)
+                .map_err(|e| format!("Could not remove {relative_path}: {e}"))?;
+        }
+    }
+    Ok(())
+}
+
+/// One export file: a plain filename plus its raw bytes.
+#[derive(serde::Deserialize)]
+struct ExportFileArg {
+    name: String,
+    bytes: Vec<u8>,
+}
+
+/// Write export files into a user-chosen destination directory.
+///
+/// Unlike `attach_image_file` (which stays inside the app's managed storage), export
+/// writes to a location the researcher explicitly picked via the OS folder dialog —
+/// that is the point of an export. To stay safe, each `name` must be a PLAIN file
+/// name: any path separator or `..` component is rejected, so files can only land
+/// directly in the chosen directory.
+#[tauri::command]
+fn write_export_files(
+    directory: String,
+    files: Vec<ExportFileArg>,
+) -> Result<(), String> {
+    use std::path::{Component, Path};
+
+    let dir = Path::new(&directory);
+    for file in files {
+        let name_path = Path::new(&file.name);
+        let is_plain_name = name_path.components().count() == 1
+            && matches!(name_path.components().next(), Some(Component::Normal(_)));
+        if !is_plain_name {
+            return Err(format!("Invalid export file name: {}", file.name));
+        }
+        let target = dir.join(&file.name);
+        std::fs::write(&target, &file.bytes)
+            .map_err(|e| format!("Could not write {}: {e}", file.name))?;
+    }
     Ok(())
 }
 
@@ -240,7 +352,11 @@ pub fn run() {
                 .build(),
         )
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![attach_image_file])
+        .invoke_handler(tauri::generate_handler![
+            attach_image_file,
+            delete_managed_files,
+            write_export_files
+        ])
         .run(tauri::generate_context!())
         .expect("error while running the ALS Research Companion application");
 }

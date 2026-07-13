@@ -9,7 +9,7 @@ import type { Observation } from "@/domain/entities/observation";
  *
  * **Contract for mutations of existing rows.** `update` MUST NOT report success
  * when no row matched the target id; it must detect "no rows changed" and throw
- * `NotFoundError`. There is intentionally **no delete** operation.
+ * `NotFoundError`. `delete` was added in v1.4 (owner-authorized).
  */
 export interface ObservationRepository {
   /** An animal's observations, most recent first (by observed date). */
@@ -26,4 +26,7 @@ export interface ObservationRepository {
    * @throws NotFoundError if no observation with `observation.id` exists.
    */
   update(observation: Observation): Promise<void>;
+
+  /** Permanently delete an observation row (v1.4). Idempotent. */
+  delete(id: string): Promise<void>;
 }

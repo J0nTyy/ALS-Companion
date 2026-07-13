@@ -35,4 +35,25 @@ export class TauriFileStore implements FileStore {
     const absolutePath = await join(base, relativePath);
     return convertFileSrc(absolutePath);
   }
+
+  async remove(relativePaths: readonly string[]): Promise<void> {
+    if (!isTauri()) throw new DesktopRequiredError();
+    if (relativePaths.length === 0) return;
+    // Best-effort removal via the narrow custom command (missing files are ignored).
+    await invoke("delete_managed_files", { relativePaths: [...relativePaths] });
+  }
+
+  async writeExportFiles(
+    directory: string,
+    files: readonly { name: string; bytes: Uint8Array }[],
+  ): Promise<void> {
+    if (!isTauri()) throw new DesktopRequiredError();
+    if (files.length === 0) return;
+    // The narrow custom command writes each plain-named file into the user-chosen
+    // directory (validated in Rust to reject path traversal in the filename).
+    await invoke("write_export_files", {
+      directory,
+      files: files.map((f) => ({ name: f.name, bytes: Array.from(f.bytes) })),
+    });
+  }
 }

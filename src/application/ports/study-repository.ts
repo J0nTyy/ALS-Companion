@@ -53,4 +53,11 @@ export interface StudyRepository extends StudyReader {
    * Throws `NotFoundError` if no study with `id` exists.
    */
   archive(id: string, updatedAt: string): Promise<void>;
+
+  /**
+   * Permanently delete a study row (v1.4). Callers must delete descendants first
+   * (cascade is orchestrated in the application layer, not the DB). Idempotent —
+   * deleting a missing row is a no-op.
+   */
+  delete(id: string): Promise<void>;
 }

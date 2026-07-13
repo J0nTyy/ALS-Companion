@@ -21,8 +21,8 @@ export interface AnimalReader {
  * `NotFoundError` (from `@/application/errors`). Implementations must also refuse
  * a duplicate `(studyId, animalIdentifier)` by throwing `ConflictError`.
  *
- * There is intentionally **no delete** operation — animal records are never
- * removed.
+ * `delete` was added in v1.4 (owner-authorized reversal of the former no-delete
+ * rule). Cascade of descendants is orchestrated in the application layer.
  */
 export interface AnimalRepository extends AnimalReader {
   /** Animals in a study, newest-updated first. */
@@ -52,4 +52,7 @@ export interface AnimalRepository extends AnimalReader {
    * @throws ConflictError if the new identifier collides within the study.
    */
   update(animal: Animal): Promise<void>;
+
+  /** Permanently delete an animal row (v1.4). Idempotent; cascade done in the app layer. */
+  delete(id: string): Promise<void>;
 }

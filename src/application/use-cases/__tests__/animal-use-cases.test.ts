@@ -53,6 +53,10 @@ class FakeAnimalRepository implements AnimalRepository {
     }
     this.animals.set(animal.id, animal);
   }
+
+  async delete(id: string): Promise<void> {
+    this.animals.delete(id);
+  }
 }
 
 let repo: FakeAnimalRepository;

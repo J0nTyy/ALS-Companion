@@ -38,6 +38,10 @@ class FakeObservationRepository implements ObservationRepository {
     }
     this.observations.set(observation.id, observation);
   }
+
+  async delete(id: string): Promise<void> {
+    this.observations.delete(id);
+  }
 }
 
 function animalReader(animal: Animal | null): AnimalReader {

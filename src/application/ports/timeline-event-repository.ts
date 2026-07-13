@@ -13,12 +13,11 @@ export interface TimelineEventReader {
  * Port: persistence for {@link TimelineEvent} entities.
  *
  * Implementations receive fully-formed entities (ids/timestamps generated in the
- * application layer). Timeline history is permanent — there is intentionally
- * **no delete** operation.
+ * application layer).
  *
  * **Contract for mutations of existing rows.** `update` MUST NOT report success
  * when no row matched the target id; it must detect "no rows changed" and throw
- * `NotFoundError`.
+ * `NotFoundError`. `delete` was added in v1.4 (owner-authorized).
  */
 export interface TimelineEventRepository extends TimelineEventReader {
   /** An animal's timeline events, most-recent activity first. */
@@ -35,4 +34,7 @@ export interface TimelineEventRepository extends TimelineEventReader {
    * @throws NotFoundError if no event with `event.id` exists.
    */
   update(event: TimelineEvent): Promise<void>;
+
+  /** Permanently delete a timeline-event row (v1.4). Idempotent; cascade in the app layer. */
+  delete(id: string): Promise<void>;
 }

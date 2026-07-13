@@ -196,6 +196,11 @@ export class SqliteProtocolTemplateRepository
     }
   }
 
+  async deleteTemplate(id: string): Promise<void> {
+    const db = await getDatabase();
+    await db.execute(`DELETE FROM protocol_templates WHERE id = $1`, [id]);
+  }
+
   async reorderSteps(
     templateId: string,
     orderedStepIds: readonly string[],

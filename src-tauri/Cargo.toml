@@ -1,6 +1,6 @@
 [package]
 name = "als-research-companion"
-version = "0.1.0"
+version = "1.8.0"
 description = "A research productivity platform for ALS transgenic mouse studies."
 authors = ["ALS Research Companion"]
 edition = "2021"

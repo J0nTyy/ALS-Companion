@@ -21,6 +21,9 @@ import type {
 } from "@/application/ports/mri-session-repository";
 import type { ResearchAssetRepository } from "@/application/ports/research-asset-repository";
 import type { StorageRepository } from "@/application/ports/storage-repository";
+import type { AnnotationRepository } from "@/application/ports/annotation-repository";
+import type { AnnotationLinkRepository } from "@/application/ports/annotation-link-repository";
+import type { AnnotationContextReader } from "@/application/ports/annotation-context-reader";
 import type {
   FilePicker,
   FileStore,
@@ -132,6 +135,41 @@ export interface StorageUseCaseDeps {
   timelineEvents: TimelineEventReader;
   animals: AnimalReader;
   studies: StudyReader;
+  clock: Clock;
+  ids: IdGenerator;
+}
+
+/**
+ * The collaborators every annotation use case needs. An annotation is drawn on a
+ * {@link StoredFile}, so the writable-parent check walks the chain
+ * `StoredFile → ResearchAsset → MRISession → TimelineEvent → Animal → Study`
+ * through narrow read-only ports: the stored file and its research asset must
+ * exist, and (reusing `loadWritableAssetOwner`) the owning study must not be
+ * archived. `storage` and `researchAssets` resolve the first two hops.
+ */
+export interface AnnotationUseCaseDeps {
+  repository: AnnotationRepository;
+  storage: StorageRepository;
+  researchAssets: ResearchAssetRepository;
+  mriSessions: MRISessionReader;
+  timelineEvents: TimelineEventReader;
+  animals: AnimalReader;
+  studies: StudyReader;
+  /** Links FK-reference annotations, so deleting an annotation removes its links first. */
+  annotationLinks: AnnotationLinkRepository;
+  clock: Clock;
+  ids: IdGenerator;
+}
+
+/**
+ * The collaborators every annotation-LINK use case needs (v1.7). Longitudinal links
+ * are researcher-created relationships between annotations; the context reader
+ * resolves each annotation's study/animal/session/date (for display, ordering, and
+ * the archived-study read-only check) without a new table.
+ */
+export interface AnnotationLinkUseCaseDeps {
+  repository: AnnotationLinkRepository;
+  context: AnnotationContextReader;
   clock: Clock;
   ids: IdGenerator;
 }

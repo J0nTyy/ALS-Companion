@@ -43,4 +43,25 @@ export class TauriFilePicker implements FilePicker {
     if (!path) return null;
     return { path, name: baseName(path) };
   }
+
+  async pickDirectory(title = "Choose export destination"): Promise<string | null> {
+    if (!isTauri()) throw new DesktopRequiredError();
+
+    const selected: unknown = await open({
+      multiple: false,
+      directory: true,
+      title,
+    });
+
+    const path =
+      typeof selected === "string"
+        ? selected
+        : Array.isArray(selected) && typeof selected[0] === "string"
+          ? selected[0]
+          : selected && typeof (selected as { path?: unknown }).path === "string"
+            ? (selected as { path: string }).path
+            : null;
+
+    return path;
+  }
 }

@@ -33,6 +33,7 @@ class FakeAnimalRepo implements AnimalRepository {
   }
   async create(): Promise<void> {}
   async update(): Promise<void> {}
+  async delete(): Promise<void> {}
 }
 
 class FakeTimelineRepo implements TimelineEventRepository {
@@ -47,6 +48,10 @@ class FakeTimelineRepo implements TimelineEventRepository {
     this.events.push(event);
   }
   async update(): Promise<void> {}
+  async delete(id: string): Promise<void> {
+    const i = this.events.findIndex((e) => e.id === id);
+    if (i >= 0) this.events.splice(i, 1);
+  }
 }
 
 const activeStudy: StudyReader = {

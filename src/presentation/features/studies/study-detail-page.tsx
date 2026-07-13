@@ -17,6 +17,13 @@ import {
 import { formatDate } from "@/shared/lib/format";
 import { AnimalsSection } from "@/presentation/features/animals/animals-section";
 import { ProtocolSection } from "@/presentation/features/protocols/protocol-section";
+import {
+  ConfirmDeleteButton,
+  type ConfirmDeleteHandle,
+} from "@/presentation/components/confirm-delete-button";
+import { useDeletionService } from "@/presentation/features/deletion/deletion-service-context";
+import { useContextMenu } from "@/presentation/features/context-menu/context-menu-context";
+import { buildStudyContextMenu } from "@/presentation/features/context-menu/menus";
 import { DesktopOnlyNotice } from "./components/desktop-only-notice";
 import { StudyForm, type StudyFormValues } from "./components/study-form";
 import { StudyStatusBadge } from "./components/study-status-badge";
@@ -176,6 +183,7 @@ export function StudyDetailPage() {
           study={study}
           onEdit={() => setMode("edit")}
           onArchived={() => navigate("/studies")}
+          onDeleted={() => navigate("/studies")}
         />
       )}
     </div>
@@ -186,12 +194,17 @@ function StudyDetailView({
   study,
   onEdit,
   onArchived,
+  onDeleted,
 }: {
   study: Study;
   onEdit: () => void;
   onArchived: () => void;
+  onDeleted: () => void;
 }) {
   const service = useStudiesService();
+  const deletion = useDeletionService();
+  const contextMenu = useContextMenu();
+  const deleteRef = useRef<ConfirmDeleteHandle>(null);
   const [confirmingArchive, setConfirmingArchive] = useState(false);
   const [archiving, setArchiving] = useState(false);
   const [archiveError, setArchiveError] = useState<string | null>(null);
@@ -235,7 +248,21 @@ function StudyDetailView({
 
   return (
     <div className="max-w-2xl space-y-6">
-      <Card>
+      <Card
+        onContextMenu={(e) =>
+          contextMenu.open(
+            e,
+            buildStudyContextMenu({
+              onEdit,
+              isArchived,
+              ...(isArchived
+                ? {}
+                : { onArchive: () => setConfirmingArchive(true) }),
+              onDelete: () => deleteRef.current?.open(),
+            }),
+          )
+        }
+      >
         <CardHeader>
           <div className="flex items-center justify-between gap-3">
             <CardTitle>Details</CardTitle>
@@ -332,6 +359,40 @@ function StudyDetailView({
         studyId={study.id}
         readOnly={study.status === "archived"}
       />
+
+      <Card className="border-destructive/40">
+        <CardHeader>
+          <CardTitle className="text-destructive">Danger zone</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Permanently delete this study and everything inside it — every
+            animal, observation, timeline event, MRI session, and attached file.
+            This cannot be undone. To archive instead, use the button above.
+          </p>
+          <ConfirmDeleteButton
+            ref={deleteRef}
+            triggerLabel="Delete study"
+            title="Delete this study permanently?"
+            confirmPhrase={study.name}
+            description={
+              <>
+                This permanently removes{" "}
+                <span className="font-medium text-foreground">
+                  {study.name}
+                </span>{" "}
+                and all of its animals, observations, timeline events, MRI
+                sessions, protocol, and attached image files. This action cannot
+                be undone.
+              </>
+            }
+            onConfirm={async () => {
+              await deletion.deleteStudy(study.id);
+              onDeleted();
+            }}
+          />
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -5,7 +5,7 @@ import { imageFormatForMime } from "@/domain/entities/stored-file";
 import { Button } from "@/presentation/components/ui/button";
 import { toUserMessage } from "@/presentation/lib/error-message";
 import { formatDate } from "@/shared/lib/format";
-import { ImageViewer } from "./components/image-viewer";
+import { AnnotationWorkspace } from "@/presentation/features/annotations/annotation-workspace";
 import { useAssetImage } from "./use-asset-image";
 import { useStorageService } from "./storage-service-context";
 
@@ -110,7 +110,12 @@ export function AssetImagePanel({
           </dl>
 
           {state.viewable && state.url ? (
-            <ImageViewer src={state.url} alt={state.file.originalName} />
+            <AnnotationWorkspace
+              storedFileId={state.file.id}
+              src={state.url}
+              alt={state.file.originalName}
+              readOnly={readOnly}
+            />
           ) : (
             <p className="rounded-md border border-dashed border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
               This {imageFormatForMime(state.file.mimeType)?.label ?? "image"}{" "}

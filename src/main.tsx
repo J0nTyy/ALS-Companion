@@ -13,6 +13,11 @@ import { searchService } from "@/composition/search";
 import { storageService } from "@/composition/storage";
 import { mriComparisonService } from "@/composition/mri-comparison";
 import { dashboardService } from "@/composition/dashboard";
+import { publicationWorkspaceService } from "@/composition/publication";
+import { deletionService } from "@/composition/deletion";
+import { annotationsService } from "@/composition/annotations";
+import { annotationLinkService } from "@/composition/annotation-links";
+import { exportService } from "@/composition/export";
 import "./index.css";
 
 const rootElement = document.getElementById("root");
@@ -34,6 +39,11 @@ ReactDOM.createRoot(rootElement).render(
       storageService={storageService}
       mriComparisonService={mriComparisonService}
       dashboardService={dashboardService}
+      publicationWorkspaceService={publicationWorkspaceService}
+      deletionService={deletionService}
+      annotationService={annotationsService}
+      annotationLinkService={annotationLinkService}
+      exportService={exportService}
     />
   </React.StrictMode>,
 );

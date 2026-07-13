@@ -5,18 +5,21 @@ import {
   type Observation,
 } from "@/domain/entities/observation";
 import { Button } from "@/presentation/components/ui/button";
+import { ConfirmDeleteButton } from "@/presentation/components/confirm-delete-button";
 import { formatDateOnly } from "@/shared/lib/format";
 
 /**
- * A single observation — calm and scannable. The Edit action is shown only when
- * `onEdit` is provided (omitted for archived, read-only studies).
+ * A single observation — calm and scannable. The Edit and Delete actions are shown
+ * only when their handlers are provided (omitted for archived, read-only studies).
  */
 export function ObservationListItem({
   observation,
   onEdit,
+  onDelete,
 }: {
   observation: Observation;
   onEdit?: () => void;
+  onDelete?: () => Promise<void>;
 }) {
   const meta = OBSERVATION_KIND_META[observation.kind];
   const valueDisplay =
@@ -48,16 +51,35 @@ export function ObservationListItem({
           </p>
         ) : null}
       </div>
-      {onEdit ? (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onEdit}
-          aria-label={`Edit ${meta.label} from ${formatDateOnly(observation.observedOn)}`}
-        >
-          <Pencil />
-          Edit
-        </Button>
+      {onEdit || onDelete ? (
+        <div className="flex items-center gap-1">
+          {onEdit ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onEdit}
+              aria-label={`Edit ${meta.label} from ${formatDateOnly(observation.observedOn)}`}
+            >
+              <Pencil />
+              Edit
+            </Button>
+          ) : null}
+          {onDelete ? (
+            <ConfirmDeleteButton
+              iconOnly
+              triggerAriaLabel={`Delete ${meta.label} from ${formatDateOnly(observation.observedOn)}`}
+              title="Delete this observation?"
+              description={
+                <>
+                  This permanently removes the {meta.label.toLowerCase()}{" "}
+                  recorded on {formatDateOnly(observation.observedOn)}. This
+                  action cannot be undone.
+                </>
+              }
+              onConfirm={onDelete}
+            />
+          ) : null}
+        </div>
       ) : null}
     </div>
   );

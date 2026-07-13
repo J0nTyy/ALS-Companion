@@ -170,4 +170,9 @@ export class SqliteAnimalRepository
       throw toRepositoryError(error);
     }
   }
+
+  async delete(id: string): Promise<void> {
+    const db = await getDatabase();
+    await db.execute(`DELETE FROM animals WHERE id = $1`, [id]);
+  }
 }

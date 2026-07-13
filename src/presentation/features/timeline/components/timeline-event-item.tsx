@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { Check, Pencil } from "lucide-react";
 
 import {
@@ -7,26 +8,36 @@ import {
 } from "@/domain/entities/timeline-event";
 import { Badge } from "@/presentation/components/ui/badge";
 import { Button } from "@/presentation/components/ui/button";
+import {
+  ConfirmDeleteButton,
+  type ConfirmDeleteHandle,
+} from "@/presentation/components/confirm-delete-button";
+import { useContextMenu } from "@/presentation/features/context-menu/context-menu-context";
+import { buildTimelineEventContextMenu } from "@/presentation/features/context-menu/menus";
 import { formatDateOnly } from "@/shared/lib/format";
 import { cn } from "@/shared/lib/utils";
 
 /**
  * A single timeline event. Completed events are clearly distinguished from
  * planned ones (status badge); the newest planned event is highlighted. Provides
- * Mark complete (planned only) and Edit. There is no delete — history is
- * permanent. Actions are omitted for read-only (archived) studies.
+ * Mark complete (planned only), Edit, and Delete. Actions are omitted for
+ * read-only (archived) studies.
  */
 export function TimelineEventItem({
   event,
   highlight = false,
   onEdit,
   onMarkComplete,
+  onDelete,
 }: {
   event: TimelineEvent;
   highlight?: boolean;
   onEdit?: () => void;
   onMarkComplete?: () => void;
+  onDelete?: () => Promise<void>;
 }) {
+  const contextMenu = useContextMenu();
+  const deleteRef = useRef<ConfirmDeleteHandle>(null);
   const category = TIMELINE_EVENT_CATEGORY_META[event.category];
   const statusMeta = TIMELINE_EVENT_STATUS_META[event.status];
   const isPlanned = event.status === "planned";
@@ -40,10 +51,23 @@ export function TimelineEventItem({
   }
   const dateLine = dateParts.length > 0 ? dateParts.join(" · ") : "No date set";
 
-  const showActions = Boolean(onEdit || (isPlanned && onMarkComplete));
+  const showActions = Boolean(
+    onEdit || (isPlanned && onMarkComplete) || onDelete,
+  );
 
   return (
     <div
+      onContextMenu={(e) =>
+        contextMenu.open(
+          e,
+          buildTimelineEventContextMenu({
+            isPlanned,
+            ...(onMarkComplete ? { onMarkComplete } : {}),
+            ...(onEdit ? { onEdit } : {}),
+            ...(onDelete ? { onDelete: () => deleteRef.current?.open() } : {}),
+          }),
+        )
+      }
       className={cn(
         "rounded-lg border bg-card px-5 py-4",
         highlight
@@ -87,6 +111,27 @@ export function TimelineEventItem({
               <Pencil />
               Edit
             </Button>
+          ) : null}
+          {onDelete ? (
+            <ConfirmDeleteButton
+              ref={deleteRef}
+              iconOnly
+              triggerAriaLabel={`Delete "${event.title}"`}
+              title="Delete this timeline event?"
+              description={
+                <>
+                  This permanently removes{" "}
+                  <span className="font-medium text-foreground">
+                    {event.title}
+                  </span>
+                  {event.category === "mri"
+                    ? " and any MRI sessions, assets, and image files attached to it"
+                    : ""}
+                  . This action cannot be undone.
+                </>
+              }
+              onConfirm={onDelete}
+            />
           ) : null}
         </div>
       ) : null}

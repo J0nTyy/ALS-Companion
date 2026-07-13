@@ -141,4 +141,9 @@ export class SqliteMriSessionRepository
       throw new NotFoundError(MRI_SESSION_NOT_FOUND);
     }
   }
+
+  async delete(id: string): Promise<void> {
+    const db = await getDatabase();
+    await db.execute(`DELETE FROM mri_sessions WHERE id = $1`, [id]);
+  }
 }

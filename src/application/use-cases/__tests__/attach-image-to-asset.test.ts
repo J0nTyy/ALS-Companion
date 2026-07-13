@@ -37,6 +37,9 @@ class FakeStorageRepository implements StorageRepository {
   async create(file: StoredFile): Promise<void> {
     this.files.set(file.id, file);
   }
+  async delete(id: string): Promise<void> {
+    this.files.delete(id);
+  }
 }
 
 class FakeResearchAssetRepository implements ResearchAssetRepository {
@@ -52,6 +55,9 @@ class FakeResearchAssetRepository implements ResearchAssetRepository {
   async update(asset: ResearchAsset): Promise<void> {
     this.updated.push(asset);
     this.current = asset;
+  }
+  async delete(id: string): Promise<void> {
+    if (this.current && this.current.id === id) this.current = null;
   }
 }
 
@@ -117,6 +123,7 @@ function setup(options: SetupOptions = {}) {
     options.asset !== undefined ? options.asset : asset(),
   );
   const saves: Array<{ sourcePath: string; relativePath: string }> = [];
+  const removed: string[] = [];
   const fileStore: FileStore = {
     async save(input) {
       saves.push(input);
@@ -124,6 +131,10 @@ function setup(options: SetupOptions = {}) {
     async resolveDisplayUrl(relativePath) {
       return `asset://${relativePath}`;
     },
+    async remove(relativePaths) {
+      removed.push(...relativePaths);
+    },
+    async writeExportFiles() {},
   };
   const pickerResult =
     options.picked !== undefined
@@ -134,6 +145,9 @@ function setup(options: SetupOptions = {}) {
     async pickImage() {
       pickerState.calls += 1;
       return pickerResult;
+    },
+    async pickDirectory() {
+      return null;
     },
   };
   const now = options.now ?? "2026-07-13T00:00:00.000Z";

@@ -14,6 +14,7 @@ import {
 import { ResearchAssetItem } from "./components/research-asset-item";
 import { useResearchAssets } from "./use-research-assets";
 import { useResearchAssetService } from "./research-asset-service-context";
+import { useDeletionService } from "@/presentation/features/deletion/deletion-service-context";
 
 type SectionMode =
   | { kind: "list" }
@@ -38,6 +39,7 @@ export function ResearchAssetsSection({
   readOnly?: boolean;
 }) {
   const service = useResearchAssetService();
+  const deletion = useDeletionService();
   const { state, reload } = useResearchAssets(ownerType, ownerId);
   const [mode, setMode] = useState<SectionMode>({ kind: "list" });
 
@@ -154,7 +156,13 @@ export function ResearchAssetsSection({
                 onChanged={() => void reload()}
                 {...(readOnly
                   ? {}
-                  : { onEdit: () => setMode({ kind: "edit", asset }) })}
+                  : {
+                      onEdit: () => setMode({ kind: "edit", asset }),
+                      onDelete: async () => {
+                        await deletion.deleteResearchAsset(asset.id);
+                        await reload();
+                      },
+                    })}
               />
             ))}
             {readOnly ? null : <div>{addButton}</div>}

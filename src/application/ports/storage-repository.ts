@@ -21,4 +21,8 @@ export interface StorageRepository {
 
   /** Persist a brand-new stored-file record. */
   create(file: StoredFile): Promise<void>;
+
+  /** Permanently delete a stored-file row (v1.4). Idempotent. The file on disk is
+   *  removed separately via the FileStore. */
+  delete(id: string): Promise<void>;
 }

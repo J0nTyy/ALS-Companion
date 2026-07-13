@@ -70,4 +70,9 @@ export class SqliteStorageRepository implements StorageRepository {
       ],
     );
   }
+
+  async delete(id: string): Promise<void> {
+    const db = await getDatabase();
+    await db.execute(`DELETE FROM stored_files WHERE id = $1`, [id]);
+  }
 }

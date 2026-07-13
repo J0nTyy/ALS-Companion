@@ -2,25 +2,36 @@ import { useEffect, useState } from "react";
 import { Image as ImageIcon } from "lucide-react";
 
 import type { ComparableSession } from "@/application/ports/mri-comparison-reader";
+import type { Annotation } from "@/domain/entities/annotation";
 import type { ImageViewerController } from "@/presentation/features/storage/image-transform";
-import { ImageViewer } from "@/presentation/features/storage/components/image-viewer";
+import { AnnotatableImageViewer } from "@/presentation/features/annotations/annotatable-image-viewer";
 import { useStorageService } from "@/presentation/features/storage/storage-service-context";
 import { comparisonMetadataRows } from "../comparison-selection";
 
 /**
- * One side of the comparison: the chosen session's metadata (so the researcher
- * always knows exactly what they're viewing) plus the controlled image viewer.
- * The image URL is resolved through the existing StorageService (asset protocol) —
- * no file logic is duplicated here.
+ * One side of the comparison: the chosen session's metadata plus a read-only
+ * annotated viewer driven by the shared (sync-aware) controller. Its annotations
+ * render on the image; a linked partner in the other pane is highlighted when one
+ * is selected. Comparison never edits annotations — there are no drawing tools.
  */
 export function ComparisonPane({
   label,
   session,
   controller,
+  annotations,
+  selectedId,
+  highlightedIds,
+  linkedIds,
+  onSelectAnnotation,
 }: {
   label: string;
   session: ComparableSession | null;
   controller: ImageViewerController;
+  annotations: readonly Annotation[];
+  selectedId: string | null;
+  highlightedIds: readonly string[];
+  linkedIds: readonly string[];
+  onSelectAnnotation: (id: string | null) => void;
 }) {
   const storage = useStorageService();
   const [url, setUrl] = useState<string | null>(null);
@@ -80,10 +91,17 @@ export function ComparisonPane({
               This image couldn't be loaded.
             </p>
           ) : url ? (
-            <ImageViewer
+            <AnnotatableImageViewer
               src={url}
               alt={`${session.animalIdentifier} — ${session.title}`}
               controller={controller}
+              annotations={annotations}
+              selectedId={selectedId}
+              highlightedIds={highlightedIds}
+              linkedIds={linkedIds}
+              mode="select"
+              onSelect={onSelectAnnotation}
+              onCreate={() => {}}
               heightClass="h-[28rem]"
             />
           ) : (

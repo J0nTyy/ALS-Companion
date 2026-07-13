@@ -47,6 +47,10 @@ class FakeStudyRepository implements StudyRepository {
     }
     this.studies.set(id, { ...existing, status: "archived", updatedAt });
   }
+
+  async delete(id: string): Promise<void> {
+    this.studies.delete(id);
+  }
 }
 
 let repo: FakeStudyRepository;

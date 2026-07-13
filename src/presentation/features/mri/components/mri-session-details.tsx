@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { Image as ImageIcon, Pencil } from "lucide-react";
 
 import {
@@ -5,6 +6,12 @@ import {
   type MRISession,
 } from "@/domain/entities/mri-session";
 import { Button } from "@/presentation/components/ui/button";
+import {
+  ConfirmDeleteButton,
+  type ConfirmDeleteHandle,
+} from "@/presentation/components/confirm-delete-button";
+import { useContextMenu } from "@/presentation/features/context-menu/context-menu-context";
+import { buildMriSessionContextMenu } from "@/presentation/features/context-menu/menus";
 import { ResearchAssetsSection } from "@/presentation/features/assets/research-assets-section";
 import { formatDateOnly } from "@/shared/lib/format";
 
@@ -17,26 +24,64 @@ import { formatDateOnly } from "@/shared/lib/format";
 export function MriSessionDetails({
   session,
   onEdit,
+  onDelete,
   readOnly = false,
 }: {
   session: MRISession;
   onEdit?: () => void;
+  onDelete?: () => Promise<void>;
   readOnly?: boolean;
 }) {
+  const contextMenu = useContextMenu();
+  const deleteRef = useRef<ConfirmDeleteHandle>(null);
   return (
-    <div className="rounded-lg border border-border bg-card px-5 py-4">
+    <div
+      className="rounded-lg border border-border bg-card px-5 py-4"
+      onContextMenu={(e) =>
+        contextMenu.open(
+          e,
+          buildMriSessionContextMenu({
+            ...(onEdit ? { onEdit } : {}),
+            ...(onDelete ? { onDelete: () => deleteRef.current?.open() } : {}),
+          }),
+        )
+      }
+    >
       <div className="flex items-start justify-between gap-3">
         <p className="font-medium text-foreground">{session.title}</p>
-        {onEdit ? (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onEdit}
-            aria-label={`Edit ${session.title}`}
-          >
-            <Pencil />
-            Edit
-          </Button>
+        {onEdit || onDelete ? (
+          <div className="flex items-center gap-1">
+            {onEdit ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onEdit}
+                aria-label={`Edit ${session.title}`}
+              >
+                <Pencil />
+                Edit
+              </Button>
+            ) : null}
+            {onDelete ? (
+              <ConfirmDeleteButton
+                ref={deleteRef}
+                iconOnly
+                triggerAriaLabel={`Delete ${session.title}`}
+                title="Delete this MRI session?"
+                description={
+                  <>
+                    This permanently removes{" "}
+                    <span className="font-medium text-foreground">
+                      {session.title}
+                    </span>{" "}
+                    and all of its research assets and attached image files. This
+                    action cannot be undone.
+                  </>
+                }
+                onConfirm={onDelete}
+              />
+            ) : null}
+          </div>
         ) : null}
       </div>
 

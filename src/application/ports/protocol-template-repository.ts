@@ -40,6 +40,12 @@ export interface ProtocolTemplateRepository extends ProtocolTemplateReader {
    */
   updateTemplate(template: ProtocolTemplate): Promise<void>;
 
+  /**
+   * Permanently delete a protocol template row (v1.4) — used when its study is
+   * deleted. Idempotent. Callers delete the template's steps first.
+   */
+  deleteTemplate(id: string): Promise<void>;
+
   /** A template's steps in display order. */
   listStepsByTemplate(templateId: string): Promise<ProtocolStep[]>;
 

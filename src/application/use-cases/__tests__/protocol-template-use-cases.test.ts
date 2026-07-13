@@ -45,6 +45,9 @@ class FakeProtocolTemplateRepository implements ProtocolTemplateRepository {
     }
     this.templates.set(template.id, template);
   }
+  async deleteTemplate(id: string): Promise<void> {
+    this.templates.delete(id);
+  }
   async listStepsByTemplate(templateId: string): Promise<ProtocolStep[]> {
     return [...this.steps.values()]
       .filter((s) => s.protocolTemplateId === templateId)

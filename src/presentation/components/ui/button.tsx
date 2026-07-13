@@ -21,11 +21,11 @@ const buttonVariants = cva(
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
-        // Large, touch-friendly defaults per the product's accessibility goals.
-        default: "h-11 px-5 py-2 [&_svg]:size-4",
-        sm: "h-9 px-4 [&_svg]:size-4",
-        lg: "h-12 px-8 text-base [&_svg]:size-5",
-        icon: "h-11 w-11 [&_svg]:size-5",
+        // Compact but still comfortable click targets (default 40px tall).
+        default: "h-10 px-4 py-2 [&_svg]:size-4",
+        sm: "h-8 px-3 text-[13px] [&_svg]:size-3.5",
+        lg: "h-11 px-6 text-base [&_svg]:size-5",
+        icon: "h-10 w-10 [&_svg]:size-5",
       },
     },
     defaultVariants: {

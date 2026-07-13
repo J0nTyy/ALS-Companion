@@ -29,6 +29,9 @@ class FakeTimelineEventRepository implements TimelineEventRepository {
     }
     this.events.set(event.id, event);
   }
+  async delete(id: string): Promise<void> {
+    this.events.delete(id);
+  }
 }
 
 function animalReader(animal: Animal | null): AnimalReader {

@@ -32,6 +32,9 @@ class FakeMriSessionRepository implements MRISessionRepository {
     }
     this.sessions.set(session.id, session);
   }
+  async delete(id: string): Promise<void> {
+    this.sessions.delete(id);
+  }
 }
 
 const timelineEvent: TimelineEvent = {
