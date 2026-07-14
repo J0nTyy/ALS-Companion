@@ -1,0 +1,57 @@
+# Automated release + auto-update publishing.
+#
+# Trigger: push a version tag, e.g.  git tag v2.5.1 && git push origin v2.5.1
+#
+# What it does: builds the Windows app, SIGNS the updater artifacts with your private
+# key, creates a GitHub Release for the tag, and uploads the NSIS installer plus the
+# `latest.json` update manifest. Installed apps point their updater at
+# releases/latest/download/latest.json, so they see the new version automatically.
+#
+# Required repository secrets (Settings -> Secrets and variables -> Actions):
+#   TAURI_SIGNING_PRIVATE_KEY           contents of src-tauri/.tauri/als-updater.key
+#   TAURI_SIGNING_PRIVATE_KEY_PASSWORD  the key's password ("" if you made it passwordless)
+# GITHUB_TOKEN is provided automatically by Actions.
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    permissions:
+      contents: write
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "src-tauri -> target"
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build, sign & publish the release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "ALS Research Companion ${{ github.ref_name }}"
+          releaseBody: "Automated build. Installed apps will update to this version automatically; new users can download the setup .exe below."
+          releaseDraft: false
+          prerelease: false

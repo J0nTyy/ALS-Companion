@@ -6,6 +6,8 @@ import { ThemeToggle } from "@/presentation/components/theme-toggle";
 import { GlobalSearchBox } from "@/presentation/features/search/global-search-box";
 import { useSettings } from "@/shared/hooks/use-settings";
 import { recordWorkspacePath } from "@/shared/lib/last-workspace";
+import { useUpdater } from "@/presentation/features/updater/updater-context";
+import { UpdateBanner } from "@/presentation/features/updater/update-banner";
 import { AppSidebar } from "./app-sidebar";
 
 const COLLAPSE_KEY = "als.sidebar.collapsed";
@@ -35,10 +37,18 @@ function readCollapsed(): boolean | null {
 export function AppShell() {
   const { settings } = useSettings();
   const location = useLocation();
+  const updater = useUpdater();
   // Remembered explicit choice wins; otherwise fall back to the Settings default.
   const [collapsed, setCollapsed] = useState(
     () => readCollapsed() ?? settings.sidebarDefaultCollapsed,
   );
+
+  // Quietly check for an update once on launch (offline failures are swallowed).
+  useEffect(() => {
+    void updater.check({ silent: true });
+    // Run once for the app session.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Remember the last study/animal the researcher visited (for the dashboard's
   // "resume" card), when the preference is on.
@@ -72,6 +82,7 @@ export function AppShell() {
       <AppSidebar collapsed={collapsed} onToggle={toggle} />
 
       <div className="flex min-w-0 flex-1 flex-col">
+        <UpdateBanner />
         <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border px-4">
           <GlobalSearchBox />
           <div className="ml-auto">

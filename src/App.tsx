@@ -31,6 +31,7 @@ import { AnnotationServiceProvider } from "@/presentation/features/annotations/a
 import { AnnotationLinkServiceProvider } from "@/presentation/features/annotation-links/annotation-link-service-context";
 import { ContextMenuProvider } from "@/presentation/features/context-menu/context-menu-context";
 import { ToastProvider } from "@/presentation/features/toast/toast-context";
+import { UpdaterProvider } from "@/presentation/features/updater/updater-context";
 import { AnalyticsServiceProvider } from "@/presentation/features/analytics/analytics-service-context";
 import { StudiesServiceProvider } from "@/presentation/features/studies/studies-service-context";
 import { AnimalsServiceProvider } from "@/presentation/features/animals/animals-service-context";
@@ -161,6 +162,7 @@ export function App({
     <ThemeProvider>
       <SettingsProvider>
       <ToastProvider>
+      <UpdaterProvider>
       <AnalyticsServiceProvider service={analyticsService}>
       <ContextMenuProvider>
       <StudiesServiceProvider service={studiesService}>
@@ -226,6 +228,7 @@ export function App({
       </StudiesServiceProvider>
       </ContextMenuProvider>
       </AnalyticsServiceProvider>
+      </UpdaterProvider>
       </ToastProvider>
       </SettingsProvider>
     </ThemeProvider>

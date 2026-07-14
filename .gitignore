@@ -42,3 +42,8 @@ src-tauri/seed/
 # Python bytecode cache
 __pycache__/
 *.pyc
+
+# Updater signing keys (PRIVATE — never commit; store in CI secrets)
+.tauri/
+src-tauri/.tauri/
+*.key

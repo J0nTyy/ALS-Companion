@@ -3,7 +3,9 @@ import { Monitor, Moon, Sun, Check } from "lucide-react";
 
 import { PageHeader } from "@/presentation/components/page-header";
 import { HELP } from "@/presentation/features/help/help-sections";
+import { useUpdater } from "@/presentation/features/updater/updater-context";
 import { Badge } from "@/presentation/components/ui/badge";
+import { Button } from "@/presentation/components/ui/button";
 import {
   Card,
   CardContent,
@@ -392,6 +394,9 @@ export function SettingsPage() {
         <FutureRow label="Backup & restore reminders" />
       </Section>
 
+      {/* ------------------------------------------------------------- Updates */}
+      <UpdatesSection />
+
       {/* --------------------------------------------------------------- About */}
       <AboutCard onReset={reset} />
     </div>
@@ -525,6 +530,62 @@ function FutureRow({ label }: { label: string }) {
       <p className="text-sm text-muted-foreground">{label}</p>
       <Badge variant="secondary">Planned</Badge>
     </div>
+  );
+}
+
+/** Check for + install app updates (Tauri auto-updater). */
+function UpdatesSection() {
+  const { state, check, install } = useUpdater();
+  const busy =
+    state.status === "checking" ||
+    state.status === "downloading" ||
+    state.status === "installing";
+
+  const statusText = (() => {
+    switch (state.status) {
+      case "checking":
+        return "Checking for updates…";
+      case "uptodate":
+        return `You're on the latest version (${APP.version}).`;
+      case "available":
+        return `Version ${state.version} is available — you have ${state.currentVersion}.`;
+      case "downloading":
+        return state.total
+          ? `Downloading ${state.version} — ${Math.min(100, Math.round((state.downloaded / state.total) * 100))}%…`
+          : `Downloading ${state.version}…`;
+      case "installing":
+        return `Installing ${state.version} — the app will restart…`;
+      case "error":
+        return state.message;
+      case "unavailable":
+        return "Updates are available in the installed desktop app.";
+      default:
+        return `Version ${APP.version}. Check for a newer release.`;
+    }
+  })();
+
+  return (
+    <Section
+      title="Updates"
+      description="Updates install in place and never touch your studies or images."
+    >
+      <Row label="App updates" description={statusText}>
+        {state.status === "available" ? (
+          <Button size="sm" onClick={() => void install()}>
+            Update &amp; restart
+          </Button>
+        ) : (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => void check()}
+            disabled={busy}
+          >
+            {state.status === "checking" ? "Checking…" : "Check for updates"}
+          </Button>
+        )}
+      </Row>
+    </Section>
   );
 }
 

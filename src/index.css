@@ -87,7 +87,10 @@
     --success-foreground: 0 0% 100%;
 
     --warning: 38 92% 55%;
-    --warning-foreground: 38 92% 12%;
+    /* Dark theme: a LIGHT amber so warning markers (badge text, the warning box, and
+     * the AlertTriangle icon) — all drawn on a low-opacity amber tint — stay legible
+     * on the dark background. Light theme keeps a near-black amber (see :root). */
+    --warning-foreground: 40 96% 82%;
 
     --border: 217 20% 20%;
     --input: 217 20% 22%;
