@@ -1,6 +1,7 @@
 import { Ruler } from "lucide-react";
 
 import type { Annotation } from "@/domain/entities/annotation";
+import { useSettings } from "@/shared/hooks/use-settings";
 import {
   inspectAnnotation,
   type ImageDimensions,
@@ -29,6 +30,8 @@ export function RoiInspector({
   hasAnnotations: boolean;
   readOnly: boolean;
 }) {
+  const { settings } = useSettings();
+  const precision = settings.measurementPrecision;
   const measurement = inspectAnnotation(annotation, imageDimensions);
 
   return (
@@ -39,7 +42,7 @@ export function RoiInspector({
       </div>
 
       {measurement ? (
-        <MeasurementBody measurement={measurement} />
+        <MeasurementBody measurement={measurement} precision={precision} />
       ) : (
         <p className="text-sm text-muted-foreground">
           {hasAnnotations
@@ -53,16 +56,29 @@ export function RoiInspector({
   );
 }
 
-function MeasurementBody({ measurement }: { measurement: Measurement }) {
-  if (measurement.kind === "point") return <PointBody measurement={measurement} />;
-  return <RectangleBody measurement={measurement} />;
+function MeasurementBody({
+  measurement,
+  precision,
+}: {
+  measurement: Measurement;
+  precision: number;
+}) {
+  if (measurement.kind === "point")
+    return <PointBody measurement={measurement} precision={precision} />;
+  return <RectangleBody measurement={measurement} precision={precision} />;
 }
 
-function PointBody({ measurement }: { measurement: PointMeasurement }) {
+function PointBody({
+  measurement,
+  precision,
+}: {
+  measurement: PointMeasurement;
+  precision: number;
+}) {
   const { normalized, pixels } = measurement;
   return (
     <dl className="space-y-2">
-      <Metric label="Position (normalized)" value={vecNorm(normalized)} />
+      <Metric label="Position (normalized)" value={vecNorm(normalized, precision)} />
       {pixels ? (
         <Metric label="Position (pixels)" value={vecPx(pixels)} />
       ) : (
@@ -72,7 +88,13 @@ function PointBody({ measurement }: { measurement: PointMeasurement }) {
   );
 }
 
-function RectangleBody({ measurement }: { measurement: RectangleMeasurement }) {
+function RectangleBody({
+  measurement,
+  precision,
+}: {
+  measurement: RectangleMeasurement;
+  precision: number;
+}) {
   const { normalized, pixels, aspectRatio } = measurement;
   return (
     <div className="space-y-4">
@@ -93,11 +115,11 @@ function RectangleBody({ measurement }: { measurement: RectangleMeasurement }) {
       )}
 
       <Section title="Normalized">
-        <Metric label="Width" value={norm(normalized.width)} />
-        <Metric label="Height" value={norm(normalized.height)} />
-        <Metric label="Center" value={vecNorm(normalized.center)} />
-        <Metric label="Top-left" value={vecNorm(normalized.topLeft)} />
-        <Metric label="Bottom-right" value={vecNorm(normalized.bottomRight)} />
+        <Metric label="Width" value={norm(normalized.width, precision)} />
+        <Metric label="Height" value={norm(normalized.height, precision)} />
+        <Metric label="Center" value={vecNorm(normalized.center, precision)} />
+        <Metric label="Top-left" value={vecNorm(normalized.topLeft, precision)} />
+        <Metric label="Bottom-right" value={vecNorm(normalized.bottomRight, precision)} />
       </Section>
     </div>
   );
@@ -146,11 +168,11 @@ function round(n: number): number {
 function px(n: number): string {
   return `${round(n)} px`;
 }
-function norm(n: number): string {
-  return n.toFixed(3);
+function norm(n: number, precision: number): string {
+  return n.toFixed(precision);
 }
-function vecNorm(v: Vec2): string {
-  return `(${norm(v.x)}, ${norm(v.y)})`;
+function vecNorm(v: Vec2, precision: number): string {
+  return `(${norm(v.x, precision)}, ${norm(v.y, precision)})`;
 }
 function vecPx(v: Vec2): string {
   return `(${round(v.x)}, ${round(v.y)}) px`;

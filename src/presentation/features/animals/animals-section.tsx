@@ -1,7 +1,8 @@
-import { useId, useState } from "react";
+import { useEffect, useState } from "react";
 import { AlertTriangle, PawPrint, Plus } from "lucide-react";
 
 import type { Animal } from "@/domain/entities/animal";
+import { CollapsibleSection } from "@/presentation/components/collapsible-section";
 import { EmptyState } from "@/presentation/components/empty-state";
 import { LoadingState } from "@/presentation/components/loading-state";
 import { Button } from "@/presentation/components/ui/button";
@@ -28,17 +29,23 @@ type SectionMode =
 export function AnimalsSection({
   studyId,
   readOnly = false,
+  onCountChange,
 }: {
   studyId: string;
   readOnly?: boolean;
+  onCountChange?: (count: number) => void;
 }) {
-  const headingId = useId();
   const service = useAnimalsService();
   const { state, reload } = useAnimals(studyId);
   const [mode, setMode] = useState<SectionMode>({ kind: "list" });
 
   // Archived studies are read-only: never show the add/edit forms.
   const effectiveMode: SectionMode = readOnly ? { kind: "list" } : mode;
+  const animalCount = state.status === "ready" ? state.animals.length : undefined;
+
+  useEffect(() => {
+    if (animalCount !== undefined) onCountChange?.(animalCount);
+  }, [animalCount, onCountChange]);
 
   async function handleCreate(values: AnimalFormValues) {
     await service.create({
@@ -73,29 +80,14 @@ export function AnimalsSection({
     </Button>
   );
 
-  const showAdd =
-    !readOnly &&
-    state.status === "ready" &&
-    effectiveMode.kind === "list" &&
-    state.animals.length > 0;
-
   return (
-    <section aria-labelledby={headingId} className="space-y-4">
-      <div className="flex items-end justify-between gap-3 border-t border-border pt-6">
-        <div>
-          <h2
-            id={headingId}
-            className="text-lg font-semibold tracking-tight text-foreground"
-          >
-            Animals
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            The mice tracked in this study.
-          </p>
-        </div>
-        {showAdd ? addButton : null}
-      </div>
-
+    <CollapsibleSection
+      title="Animals"
+      description="The mice tracked in this study."
+      {...(animalCount !== undefined ? { count: animalCount } : {})}
+      storageKey={`als.section.${studyId}.animals`}
+    >
+      <div className="space-y-4">
       {readOnly && state.status === "ready" ? (
         <p className="rounded-md border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
           This study is archived, so its animal registry is read-only. Restore the
@@ -178,21 +170,27 @@ export function AnimalsSection({
             {...(readOnly ? {} : { action: addButton })}
           />
         ) : (
-          <ul className="space-y-3">
-            {state.animals.map((animal) => (
-              <li key={animal.id}>
-                <AnimalListItem
-                  animal={animal}
-                  to={`/studies/${studyId}/animals/${animal.id}`}
-                  {...(readOnly
-                    ? {}
-                    : { onEdit: () => setMode({ kind: "edit", animal }) })}
-                />
-              </li>
-            ))}
-          </ul>
+          <div className="space-y-3">
+            {!readOnly ? (
+              <div className="flex justify-end">{addButton}</div>
+            ) : null}
+            <ul className="space-y-2.5">
+              {state.animals.map((animal) => (
+                <li key={animal.id}>
+                  <AnimalListItem
+                    animal={animal}
+                    to={`/studies/${studyId}/animals/${animal.id}`}
+                    {...(readOnly
+                      ? {}
+                      : { onEdit: () => setMode({ kind: "edit", animal }) })}
+                  />
+                </li>
+              ))}
+            </ul>
+          </div>
         )
       ) : null}
-    </section>
+      </div>
+    </CollapsibleSection>
   );
 }

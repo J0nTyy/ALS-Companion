@@ -45,6 +45,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     }
     root.classList.toggle("high-contrast", settings.highContrast);
     root.classList.toggle("reduce-motion", settings.reducedMotion);
+    root.classList.toggle("keyboard-nav", settings.enhancedKeyboardNav);
     root.style.fontSize = settingsRootFontPx(settings);
   }, [settings]);
 

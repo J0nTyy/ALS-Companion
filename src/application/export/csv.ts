@@ -1,21 +1,15 @@
 /**
- * Minimal RFC-4180-style CSV serialization (pure). A field is quoted only when it
- * contains a comma, quote, or newline; embedded quotes are doubled.
+ * CSV serialization via **papaparse** (`unparse`) — RFC-4180 quoting/escaping is
+ * handled by the library. Kept behind this small `toCsv` helper so the exporters
+ * stay unchanged. Lines are LF-terminated with a trailing newline.
  */
+import Papa from "papaparse";
 
 export type CsvValue = string | number | null | undefined;
 
-function escapeField(value: CsvValue): string {
-  const text = value === null || value === undefined ? "" : String(value);
-  if (/[",\r\n]/.test(text)) {
-    return `"${text.replace(/"/g, '""')}"`;
-  }
-  return text;
-}
-
-/** Build CSV text from a header row and data rows. Lines are LF-terminated. */
+/** Build CSV text from a header row and data rows. */
 export function toCsv(header: readonly string[], rows: readonly CsvValue[][]): string {
-  const lines = [header.map(escapeField).join(",")];
-  for (const row of rows) lines.push(row.map(escapeField).join(","));
-  return `${lines.join("\n")}\n`;
+  const data = rows.map((row) => row.map((v) => (v === null || v === undefined ? "" : v)));
+  const body = Papa.unparse({ fields: [...header], data }, { newline: "\n" });
+  return `${body}\n`;
 }

@@ -32,7 +32,19 @@ export type ReportBlock =
   | { kind: "paragraph"; text: string }
   | { kind: "fields"; fields: ReportField[] }
   | { kind: "table"; columns: string[]; rows: string[][] }
-  | { kind: "note"; text: string };
+  | { kind: "note"; text: string }
+  | {
+      /**
+       * A reference to a study image. The renderer embeds the image when its bytes
+       * are supplied (DOCX); otherwise it renders the caption only. Bytes never live
+       * in the model — they are passed to the renderer separately, keyed by
+       * `relativePath`.
+       */
+      kind: "image";
+      relativePath: string;
+      mimeType: string;
+      caption: string;
+    };
 
 export interface ReportSection {
   heading: string;
@@ -324,14 +336,29 @@ export function buildReportModel(pkg: PublicationPackage): ReportDocument {
     ],
   });
 
-  // Image references (no embedded images in this version)
+  // Image references + embedded images. Word (.docx) reports embed each raster
+  // image inline; PDF reports list them here and write the files alongside the report.
+  const assetTitle = new Map(pkg.researchAssets.map((a) => [a.id, a.title]));
+  const embeddableFiles = pkg.storedFiles.filter(
+    (f) => f.mimeType === "image/png" || f.mimeType === "image/jpeg",
+  );
+  const imageBlocks: ReportBlock[] = embeddableFiles.map((f) => {
+    const asset = assetTitle.get(f.researchAssetId);
+    return {
+      kind: "image",
+      relativePath: f.relativePath,
+      mimeType: f.mimeType,
+      caption: asset ? `${f.originalName} — ${asset}` : f.originalName,
+    };
+  });
   sections.push({
     heading: "Image references",
     blocks: [
       {
         kind: "note",
-        text: "Images are referenced by file name below; embedded image rendering is not included in this version.",
+        text: "Study images are embedded inline below (when image embedding is enabled in Settings → Reports & export).",
       },
+      ...imageBlocks,
       table(
         ["File", "Format", "Attached"],
         pkg.storedFiles.map((f) => [

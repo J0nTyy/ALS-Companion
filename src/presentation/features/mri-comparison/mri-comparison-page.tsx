@@ -3,11 +3,14 @@ import { Maximize, RotateCcw } from "lucide-react";
 
 import { crossLinkedIds, partnersOf } from "@/domain/entities/annotation-link";
 import { Button } from "@/presentation/components/ui/button";
+import { HelpHint } from "@/presentation/features/help/help-hint";
+import { HELP } from "@/presentation/features/help/help-sections";
 import { useContextMenu } from "@/presentation/features/context-menu/context-menu-context";
 import { buildComparisonContextMenu } from "@/presentation/features/context-menu/menus";
 import { isSyncBoth, shortcutAction } from "./comparison-state";
 import { resolveSelection } from "./comparison-selection";
 import { SessionPicker } from "./components/session-picker";
+import { useSettings } from "@/shared/hooks/use-settings";
 import { ComparisonPane } from "./components/comparison-pane";
 import { useComparableSessions } from "./use-comparable-sessions";
 import { useComparisonViewers } from "./use-comparison-viewers";
@@ -22,8 +25,9 @@ import { useComparisonAnnotations } from "./use-comparison-annotations";
  */
 export function MriComparisonPage() {
   const { state: sessionsState, reload } = useComparableSessions();
+  const { settings } = useSettings();
   const { state, dispatch, leftController, rightController } =
-    useComparisonViewers();
+    useComparisonViewers(settings.comparisonSyncDefault);
   const contextMenu = useContextMenu();
 
   const [leftId, setLeftId] = useState<string | null>(null);
@@ -77,8 +81,9 @@ export function MriComparisonPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-foreground">
+        <h1 className="flex items-center gap-2 text-2xl font-semibold text-foreground">
           MRI Comparison
+          <HelpHint section={HELP.comparison} label="MRI comparison" className="h-6 w-6" />
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Compare two MRI sessions side-by-side. Synchronize zoom and pan to move

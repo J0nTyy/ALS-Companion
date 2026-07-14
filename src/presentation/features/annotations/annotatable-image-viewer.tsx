@@ -1,8 +1,10 @@
 import {
+  useCallback,
   useEffect,
   useLayoutEffect,
   useRef,
   useState,
+  type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
@@ -15,6 +17,8 @@ import type {
 } from "@/domain/entities/annotation";
 import { Button } from "@/presentation/components/ui/button";
 import { cn } from "@/shared/lib/utils";
+import { useSettings } from "@/shared/hooks/use-settings";
+import { ANNOTATION_SIZE_PX, WHEEL_STEP } from "@/shared/config/settings";
 import { useImageTransform } from "@/presentation/features/storage/use-image-transform";
 import type { ImageViewerController } from "@/presentation/features/storage/image-transform";
 import { useContextMenu } from "@/presentation/features/context-menu/context-menu-context";
@@ -45,9 +49,9 @@ export type { AnnotationMode } from "./annotation-interaction";
 const MIN_RECT_SIZE = 0.01;
 /** Pixels of pointer travel below which a press is treated as a click. */
 const CLICK_SLOP = 4;
-/** Zoom step per button press / wheel notch — kept small for fine, precise control. */
+/** Zoom step per button press — kept small for fine, precise control. (The wheel
+ *  step is configurable via Settings → wheel sensitivity.) */
 const BUTTON_ZOOM = 1.1;
-const WHEEL_ZOOM = 1.05;
 
 /** A move (whole shape) or resize (one rectangle corner) drag in progress. */
 type DragState =
@@ -149,6 +153,7 @@ export function AnnotatableImageViewer({
   heightClass?: string;
 }) {
   const contextMenu = useContextMenu();
+  const { settings } = useSettings();
   const internal = useImageTransform();
   const view = controller ?? internal;
   const onNaturalSizeRef = useRef(onNaturalSize);
@@ -156,6 +161,14 @@ export function AnnotatableImageViewer({
   const viewRef = useRef(view);
   viewRef.current = view;
   const { scale, offset } = view.transform;
+
+  // Configurable annotation appearance + zoom feel (Settings → viewer).
+  const annotationColor = settings.annotationColor;
+  const annotationSizePx = ANNOTATION_SIZE_PX[settings.annotationSize];
+  const precision = settings.measurementPrecision;
+  const showCoords = showCoordinates || settings.showCoordinates;
+  const wheelStepRef = useRef(WHEEL_STEP[settings.wheelSensitivity]);
+  wheelStepRef.current = WHEEL_STEP[settings.wheelSensitivity];
 
   const editable = Boolean(onDragCommit);
 
@@ -177,6 +190,39 @@ export function AnnotatableImageViewer({
   const [draftRect, setDraftRect] = useState<AnnotationGeometry | null>(null);
   const draftStart = useRef<{ x: number; y: number } | null>(null);
   const dragRef = useRef<DragState | null>(null);
+  // Coalesce drag previews to one dispatch per animation frame, so the dragged
+  // mark tracks the cursor smoothly instead of lagging behind a burst of
+  // per-pointermove re-renders.
+  const previewRaf = useRef<number | null>(null);
+  const pendingPreview = useRef<{ id: string; geometry: AnnotationGeometry } | null>(
+    null,
+  );
+  const onDragPreviewRef = useRef(onDragPreview);
+  onDragPreviewRef.current = onDragPreview;
+
+  const flushPreview = useCallback(() => {
+    previewRaf.current = null;
+    const p = pendingPreview.current;
+    if (p) onDragPreviewRef.current?.(p.id, p.geometry);
+  }, []);
+
+  const schedulePreview = useCallback(
+    (id: string, geometry: AnnotationGeometry) => {
+      pendingPreview.current = { id, geometry };
+      if (previewRaf.current === null) {
+        previewRaf.current = requestAnimationFrame(flushPreview);
+      }
+    },
+    [flushPreview],
+  );
+
+  // Cancel any pending preview frame on unmount.
+  useEffect(
+    () => () => {
+      if (previewRaf.current !== null) cancelAnimationFrame(previewRaf.current);
+    },
+    [],
+  );
 
   // A new source is a different image — reset load state and report unknown size.
   useEffect(() => {
@@ -204,7 +250,8 @@ export function AnnotatableImageViewer({
     if (!el) return;
     const onWheel = (event: WheelEvent) => {
       event.preventDefault();
-      viewRef.current.zoomBy(event.deltaY < 0 ? WHEEL_ZOOM : 1 / WHEEL_ZOOM);
+      const step = wheelStepRef.current;
+      viewRef.current.zoomBy(event.deltaY < 0 ? step : 1 / step);
     };
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
@@ -271,7 +318,7 @@ export function AnnotatableImageViewer({
 
     // Idle hover → live coordinate readout (precision viewing).
     if (
-      showCoordinates &&
+      showCoords &&
       !dragRef.current &&
       !panLast.current &&
       !draftStart.current
@@ -385,12 +432,18 @@ export function AnnotatableImageViewer({
       drag.moved = true;
     }
     const geometry = geometryFromDrag(drag, event);
-    if (geometry) onDragPreview?.(drag.id, geometry);
+    if (geometry) schedulePreview(drag.id, geometry);
   }
 
   function onDragEnd(event: ReactPointerEvent<HTMLElement>) {
     const drag = dragRef.current;
     dragRef.current = null;
+    // Drop any queued preview frame — the commit below is authoritative.
+    if (previewRaf.current !== null) {
+      cancelAnimationFrame(previewRaf.current);
+      previewRaf.current = null;
+    }
+    pendingPreview.current = null;
     if (!drag || !drag.moved) return; // a click, not a drag (selection handled)
     const geometry = geometryFromDrag(drag, event);
     if (geometry) onDragCommit?.(drag.id, geometry);
@@ -430,6 +483,46 @@ export function AnnotatableImageViewer({
     );
   }
 
+  // Keyboard navigation when the viewer is focused: +/- zoom, arrows pan,
+  // 0 reset, F fit. Standard, discoverable, and keeps the viewer usable without a
+  // mouse. Ignored while typing in a field (the handler is on the viewer only).
+  function onViewportKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
+    const v = viewRef.current;
+    const PAN = 48;
+    switch (event.key) {
+      case "+":
+      case "=":
+        v.zoomBy(BUTTON_ZOOM);
+        break;
+      case "-":
+      case "_":
+        v.zoomBy(1 / BUTTON_ZOOM);
+        break;
+      case "0":
+        v.reset();
+        break;
+      case "f":
+      case "F":
+        v.fit();
+        break;
+      case "ArrowUp":
+        v.panBy(0, PAN);
+        break;
+      case "ArrowDown":
+        v.panBy(0, -PAN);
+        break;
+      case "ArrowLeft":
+        v.panBy(PAN, 0);
+        break;
+      case "ArrowRight":
+        v.panBy(-PAN, 0);
+        break;
+      default:
+        return;
+    }
+    event.preventDefault();
+  }
+
   const cursor =
     mode === "select" ? (scale > 1 ? "grab" : "default") : "crosshair";
   const markersInteractive = mode === "select";
@@ -447,8 +540,8 @@ export function AnnotatableImageViewer({
 
   const coordinateReadout = hover
     ? natural
-      ? `x ${hover.x.toFixed(3)} (${Math.round(hover.x * natural.width)}px) · y ${hover.y.toFixed(3)} (${Math.round(hover.y * natural.height)}px)`
-      : `x ${hover.x.toFixed(3)} · y ${hover.y.toFixed(3)}`
+      ? `x ${hover.x.toFixed(precision)} (${Math.round(hover.x * natural.width)}px) · y ${hover.y.toFixed(precision)} (${Math.round(hover.y * natural.height)}px)`
+      : `x ${hover.x.toFixed(precision)} · y ${hover.y.toFixed(precision)}`
     : "Move over the image to read coordinates";
 
   return (
@@ -472,7 +565,7 @@ export function AnnotatableImageViewer({
         <span className="ml-1 text-xs tabular-nums text-muted-foreground">
           {Math.round(scale * 100)}%
         </span>
-        {showCoordinates ? (
+        {showCoords ? (
           <span className="ml-auto truncate pl-2 text-xs tabular-nums text-muted-foreground">
             {coordinateReadout}
           </span>
@@ -481,8 +574,13 @@ export function AnnotatableImageViewer({
 
       <div
         ref={viewportRef}
+        tabIndex={0}
+        onKeyDown={onViewportKeyDown}
+        aria-label={`Image viewer: ${alt}. Use + and - to zoom, arrow keys to pan, 0 to reset, F to fit.`}
+        title="Zoom: + / −  ·  Pan: arrow keys  ·  Reset: 0  ·  Fit: F"
         className={cn(
           "relative flex items-center justify-center overflow-hidden rounded-lg border border-border bg-muted/40 select-none",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           fill ? "min-h-0 flex-1" : heightClass,
         )}
       >
@@ -543,6 +641,8 @@ export function AnnotatableImageViewer({
                     linked={linkedIds?.includes(annotation.id) ?? false}
                     interactive={markersInteractive}
                     draggable={markersInteractive && editable}
+                    color={annotationColor}
+                    sizePx={annotationSizePx}
                     onPointerDown={(e) => beginMarkDrag(annotation, e)}
                     onPointerMove={onDragMove}
                     onPointerUp={onDragEnd}
@@ -607,6 +707,8 @@ function AnnotationMark({
   linked = false,
   interactive,
   draggable,
+  color,
+  sizePx,
   onPointerDown,
   onPointerMove,
   onPointerUp,
@@ -618,6 +720,10 @@ function AnnotationMark({
   linked?: boolean;
   interactive: boolean;
   draggable: boolean;
+  /** Configured annotation color (Settings → viewer). */
+  color: string;
+  /** Configured base size in px (point diameter scale / rectangle stroke width). */
+  sizePx: number;
   onPointerDown: (event: ReactPointerEvent<HTMLElement>) => void;
   onPointerMove: (event: ReactPointerEvent<HTMLElement>) => void;
   onPointerUp: (event: ReactPointerEvent<HTMLElement>) => void;
@@ -646,6 +752,8 @@ function AnnotationMark({
   };
 
   if (geometry.kind === "point") {
+    // Point diameter scales with the configured size; selection nudges it larger.
+    const diameter = (sizePx + 1) * 3 + (selected ? 3 : 0);
     return (
       <button
         type="button"
@@ -655,13 +763,17 @@ function AnnotationMark({
         className={cn(
           "absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow transition-all",
           pointerClass,
-          selected ? "h-4 w-4 bg-primary" : "h-3.5 w-3.5 bg-primary/70",
-          !selected && interactive
-            ? "hover:h-4 hover:w-4 hover:bg-primary hover:ring-2 hover:ring-primary/40"
-            : "",
+          !selected && interactive ? "hover:ring-2 hover:ring-primary/40" : "",
           emphasis,
         )}
-        style={{ left: percent(geometry.x), top: percent(geometry.y) }}
+        style={{
+          left: percent(geometry.x),
+          top: percent(geometry.y),
+          width: diameter,
+          height: diameter,
+          backgroundColor: color,
+          opacity: selected ? 1 : 0.85,
+        }}
       />
     );
   }
@@ -673,11 +785,8 @@ function AnnotationMark({
       aria-pressed={selected}
       {...handlers}
       className={cn(
-        "absolute rounded-sm border-2 bg-transparent transition-colors",
+        "absolute rounded-sm bg-transparent transition-colors",
         pointerClass,
-        selected
-          ? "border-primary bg-primary/10"
-          : "border-primary/70 hover:border-primary hover:bg-primary/5",
         emphasis,
       )}
       style={{
@@ -685,6 +794,10 @@ function AnnotationMark({
         top: percent(geometry.y),
         width: percent(geometry.width),
         height: percent(geometry.height),
+        borderStyle: "solid",
+        borderWidth: sizePx,
+        borderColor: color,
+        backgroundColor: selected ? `${color}1a` : "transparent",
       }}
     />
   );

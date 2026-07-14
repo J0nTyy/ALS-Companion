@@ -417,6 +417,9 @@ function makeFileStore(db: MemoryDb): RecordingFileStore {
     filesInDbAtRemoveTime,
     shouldThrow: false,
     async save() {},
+    async readManagedBytes() {
+      return new Uint8Array();
+    },
     async resolveDisplayUrl(relativePath) {
       return `asset://${relativePath}`;
     },

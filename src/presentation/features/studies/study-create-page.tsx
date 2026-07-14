@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 
 import { PageHeader } from "@/presentation/components/page-header";
+import { HELP } from "@/presentation/features/help/help-sections";
 import { Button } from "@/presentation/components/ui/button";
 import { Card, CardContent } from "@/presentation/components/ui/card";
 import { isTauri } from "@/infrastructure/platform/environment";
@@ -29,6 +30,7 @@ export function StudyCreatePage() {
     <div className="space-y-8">
       <PageHeader
         title="New study"
+        help={HELP.studies}
         description="Give your study a name and the strain you're working with. You can refine everything later."
         actions={
           <Button variant="outline" onClick={() => navigate("/studies")}>

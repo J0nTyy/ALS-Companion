@@ -1,5 +1,11 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Activity } from "lucide-react";
+import { ArrowRight, Activity, History, X } from "lucide-react";
+
+import {
+  clearLastWorkspace,
+  readLastWorkspace,
+} from "@/shared/lib/last-workspace";
 
 import { STUDY_STATUS_META } from "@/domain/entities/study";
 import {
@@ -16,6 +22,8 @@ import {
   studyRoute,
 } from "@/application/use-cases/dashboard/dashboard-view";
 import { Button } from "@/presentation/components/ui/button";
+import { HelpHint } from "@/presentation/features/help/help-hint";
+import { HELP } from "@/presentation/features/help/help-sections";
 import { formatDateOnly } from "@/shared/lib/format";
 import { useDashboard } from "./use-dashboard";
 import { DashboardCard } from "./components/dashboard-card";
@@ -29,6 +37,43 @@ const observationLabel = (kind: string) =>
   isObservationKind(kind) ? OBSERVATION_KIND_META[kind].label : kind;
 const assetLabel = (type: string) =>
   isResearchAssetType(type) ? RESEARCH_ASSET_TYPE_META[type].label : type;
+
+/** "Continue where you left off" — links to the last study/animal the researcher
+ *  visited (if the remember-workspace preference is on and one was recorded). */
+function ResumeCard() {
+  const [ws, setWs] = useState(() => readLastWorkspace());
+  if (!ws) return null;
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3">
+      <div className="flex min-w-0 items-center gap-3">
+        <History className="h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+        <p className="truncate text-sm text-foreground">
+          Continue where you left off — {ws.label}.
+        </p>
+      </div>
+      <div className="flex shrink-0 items-center gap-1">
+        <Button asChild size="sm" variant="outline">
+          <Link to={ws.path}>
+            Resume
+            <ArrowRight />
+          </Link>
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label="Dismiss resume"
+          onClick={() => {
+            clearLastWorkspace();
+            setWs(null);
+          }}
+        >
+          <X />
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 /**
  * The Research Dashboard — the home screen. It summarizes the CURRENT research
@@ -78,7 +123,10 @@ function DashboardReady({ data }: { data: DashboardViewModel }) {
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Dashboard</h1>
+          <h1 className="flex items-center gap-2 text-2xl font-semibold text-foreground">
+            Dashboard
+            <HelpHint section={HELP.dashboard} label="dashboard" className="h-6 w-6" />
+          </h1>
           {data.currentStudy ? (
             <p className="mt-1 text-sm text-muted-foreground">
               Current study:{" "}
@@ -113,6 +161,7 @@ function DashboardReady({ data }: { data: DashboardViewModel }) {
         )}
       </header>
 
+      <ResumeCard />
       <QuickActions actions={data.quickActions} />
       <QuickStats counts={data.counts} />
       <TodaysWork dueWork={data.dueWork} />

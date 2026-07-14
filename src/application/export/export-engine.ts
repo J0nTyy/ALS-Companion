@@ -8,24 +8,37 @@
  * this engine by adding a new format + exporter — not a new publication path.
  */
 import type { PublicationPackage } from "@/application/use-cases/publication/publication-package";
-import type { ExportBundle, ExportFormat } from "./export-types";
+import type {
+  ExportBundle,
+  ExportFormat,
+  ReportImages,
+  ReportOptions,
+} from "./export-types";
 import { jsonExporter } from "./exporters/json-exporter";
 import { csvExporter } from "./exporters/csv-exporter";
 import { pdfExporter } from "./exporters/pdf-exporter";
 import { docxExporter } from "./exporters/docx-exporter";
 
-export function exportPackage(
+/**
+ * @param images  Optional image bytes (keyed by relative path) for the report
+ * exporters to embed. Only the DOCX report embeds inline; the others ignore it.
+ * @param options Optional report layout (page size, cover page, header/footer),
+ * honoured by the PDF and DOCX reports.
+ */
+export async function exportPackage(
   pkg: PublicationPackage,
   format: ExportFormat,
-): ExportBundle {
+  images?: ReportImages,
+  options?: Partial<ReportOptions>,
+): Promise<ExportBundle> {
   switch (format) {
     case "json":
       return { format, files: jsonExporter(pkg) };
     case "csv":
       return { format, files: csvExporter(pkg) };
     case "pdf":
-      return { format, files: pdfExporter(pkg) };
+      return { format, files: await pdfExporter(pkg, images, options) };
     case "docx":
-      return { format, files: docxExporter(pkg) };
+      return { format, files: await docxExporter(pkg, images, options) };
   }
 }

@@ -28,35 +28,32 @@ export function ObservationListItem({
       : `Score ${observation.value}`;
 
   return (
-    <div className="flex items-start gap-4 rounded-lg border border-border bg-card px-5 py-4">
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-          <span className="font-medium text-foreground">{meta.label}</span>
-          <span className="text-sm text-muted-foreground">
-            {formatDateOnly(observation.observedOn)}
-          </span>
-        </div>
-        <p className="mt-1 text-sm text-foreground">
-          {valueDisplay}
-          {observation.kind === "motor_score" && observation.scaleName ? (
-            <span className="text-muted-foreground">
-              {" · "}
-              {observation.scaleName}
-            </span>
-          ) : null}
-        </p>
+    <div className="group flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2.5">
+      <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+        <span className="text-sm font-medium text-foreground">{meta.label}</span>
+        <span className="text-sm text-foreground">{valueDisplay}</span>
+        {observation.kind === "motor_score" && observation.scaleName ? (
+          <span className="text-xs text-muted-foreground">{observation.scaleName}</span>
+        ) : null}
+        <span className="text-xs text-muted-foreground">
+          {formatDateOnly(observation.observedOn)}
+        </span>
         {observation.notes ? (
-          <p className="mt-1 text-sm text-muted-foreground">
+          <span
+            className="w-full truncate text-xs text-muted-foreground"
+            title={observation.notes}
+          >
             {observation.notes}
-          </p>
+          </span>
         ) : null}
       </div>
       {onEdit || onDelete ? (
-        <div className="flex items-center gap-1">
+        <div className="flex shrink-0 items-center gap-0.5 opacity-60 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
           {onEdit ? (
             <Button
               variant="ghost"
               size="sm"
+              className="h-8"
               onClick={onEdit}
               aria-label={`Edit ${meta.label} from ${formatDateOnly(observation.observedOn)}`}
             >

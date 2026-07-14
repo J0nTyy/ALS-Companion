@@ -69,31 +69,34 @@ export function TimelineEventItem({
         )
       }
       className={cn(
-        "rounded-lg border bg-card px-5 py-4",
+        "rounded-lg border bg-card px-3.5 py-3",
         highlight
           ? "border-primary/60 ring-1 ring-primary/20"
           : "border-border",
       )}
     >
-      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-        <p className="font-medium text-foreground">{event.title}</p>
-        <Badge variant="outline">{category.label}</Badge>
-        <Badge variant={statusMeta.tone}>{statusMeta.label}</Badge>
-        {highlight ? <Badge variant="default">Next planned</Badge> : null}
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+        <p className="text-sm font-medium text-foreground">{event.title}</p>
+        <Badge variant="outline" className="shrink-0">{category.label}</Badge>
+        <Badge variant={statusMeta.tone} className="shrink-0">{statusMeta.label}</Badge>
+        {highlight ? (
+          <Badge variant="default" className="shrink-0">Next planned</Badge>
+        ) : null}
+        <span className="w-full text-xs text-muted-foreground">{dateLine}</span>
+        {event.notes ? (
+          <span className="w-full truncate text-xs text-muted-foreground" title={event.notes}>
+            {event.notes}
+          </span>
+        ) : null}
       </div>
 
-      <p className="mt-1 text-sm text-muted-foreground">{dateLine}</p>
-
-      {event.notes ? (
-        <p className="mt-1 text-sm text-muted-foreground">{event.notes}</p>
-      ) : null}
-
       {showActions ? (
-        <div className="mt-3 flex items-center gap-2">
+        <div className="mt-2 flex items-center gap-1.5">
           {isPlanned && onMarkComplete ? (
             <Button
               variant="outline"
               size="sm"
+              className="h-8"
               onClick={onMarkComplete}
               aria-label={`Mark "${event.title}" complete`}
             >
@@ -105,6 +108,7 @@ export function TimelineEventItem({
             <Button
               variant="ghost"
               size="sm"
+              className="h-8"
               onClick={onEdit}
               aria-label={`Edit "${event.title}"`}
             >

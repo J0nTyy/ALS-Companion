@@ -1,12 +1,16 @@
 import type { ReactNode } from "react";
 
 import { cn } from "@/shared/lib/utils";
+import { HelpHint } from "@/presentation/features/help/help-hint";
+import type { HelpSection } from "@/presentation/features/help/help-sections";
 
 interface PageHeaderProps {
   title: string;
   description?: string;
   /** Optional actions (buttons) rendered on the right. */
   actions?: ReactNode;
+  /** When set, an ⓘ hint next to the title deep-links to this User Guide section. */
+  help?: HelpSection;
   className?: string;
 }
 
@@ -19,6 +23,7 @@ export function PageHeader({
   title,
   description,
   actions,
+  help,
   className,
 }: PageHeaderProps) {
   return (
@@ -29,8 +34,9 @@ export function PageHeader({
       )}
     >
       <div className="space-y-1.5">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+        <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight text-foreground">
           {title}
+          {help ? <HelpHint section={help} label={title} className="h-6 w-6" /> : null}
         </h1>
         {description ? (
           <p className="max-w-2xl text-sm text-muted-foreground">

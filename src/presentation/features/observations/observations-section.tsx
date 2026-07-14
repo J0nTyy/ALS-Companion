@@ -1,7 +1,8 @@
-import { useId, useState } from "react";
+import { useEffect, useState } from "react";
 import { AlertTriangle, LineChart, Plus } from "lucide-react";
 
 import type { Observation } from "@/domain/entities/observation";
+import { CollapsibleSection } from "@/presentation/components/collapsible-section";
 import { EmptyState } from "@/presentation/components/empty-state";
 import { LoadingState } from "@/presentation/components/loading-state";
 import { Button } from "@/presentation/components/ui/button";
@@ -33,18 +34,25 @@ export function ObservationsSection({
   animalId,
   studyId,
   readOnly = false,
+  onCountChange,
 }: {
   animalId: string;
   studyId: string;
   readOnly?: boolean;
+  onCountChange?: (count: number) => void;
 }) {
-  const headingId = useId();
   const service = useObservationsService();
   const deletion = useDeletionService();
   const { state, reload } = useObservations(animalId);
   const [mode, setMode] = useState<SectionMode>({ kind: "list" });
 
   const effectiveMode: SectionMode = readOnly ? { kind: "list" } : mode;
+  const observationCount =
+    state.status === "ready" ? state.observations.length : undefined;
+
+  useEffect(() => {
+    if (observationCount !== undefined) onCountChange?.(observationCount);
+  }, [observationCount, onCountChange]);
 
   async function handleCreate(values: ObservationFormValues) {
     await service.create({
@@ -80,29 +88,14 @@ export function ObservationsSection({
     </Button>
   );
 
-  const showRecord =
-    !readOnly &&
-    state.status === "ready" &&
-    effectiveMode.kind === "list" &&
-    state.observations.length > 0;
-
   return (
-    <section aria-labelledby={headingId} className="space-y-4">
-      <div className="flex items-end justify-between gap-3 border-t border-border pt-6">
-        <div>
-          <h2
-            id={headingId}
-            className="text-lg font-semibold tracking-tight text-foreground"
-          >
-            Observations
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Body weights and motor assessments recorded over time.
-          </p>
-        </div>
-        {showRecord ? recordButton : null}
-      </div>
-
+    <CollapsibleSection
+      title="Observations"
+      description="Body weights and motor assessments recorded over time."
+      {...(observationCount !== undefined ? { count: observationCount } : {})}
+      storageKey={`als.section.${animalId}.observations`}
+    >
+      <div className="space-y-4">
       {readOnly && state.status === "ready" ? (
         <p className="rounded-md border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
           This study is archived, so observations are read-only. Restore the study
@@ -183,27 +176,33 @@ export function ObservationsSection({
             {...(readOnly ? {} : { action: recordButton })}
           />
         ) : (
-          <ul className="space-y-3">
-            {state.observations.map((observation) => (
-              <li key={observation.id}>
-                <ObservationListItem
-                  observation={observation}
-                  {...(readOnly
-                    ? {}
-                    : {
-                        onEdit: () =>
-                          setMode({ kind: "edit", observation }),
-                        onDelete: async () => {
-                          await deletion.deleteObservation(observation.id);
-                          await reload();
-                        },
-                      })}
-                />
-              </li>
-            ))}
-          </ul>
+          <div className="space-y-3">
+            {!readOnly ? (
+              <div className="flex justify-end">{recordButton}</div>
+            ) : null}
+            <ul className="space-y-2.5">
+              {state.observations.map((observation) => (
+                <li key={observation.id}>
+                  <ObservationListItem
+                    observation={observation}
+                    {...(readOnly
+                      ? {}
+                      : {
+                          onEdit: () =>
+                            setMode({ kind: "edit", observation }),
+                          onDelete: async () => {
+                            await deletion.deleteObservation(observation.id);
+                            await reload();
+                          },
+                        })}
+                  />
+                </li>
+              ))}
+            </ul>
+          </div>
         )
       ) : null}
-    </section>
+      </div>
+    </CollapsibleSection>
   );
 }

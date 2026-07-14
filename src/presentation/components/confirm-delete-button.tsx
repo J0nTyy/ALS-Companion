@@ -1,7 +1,7 @@
 import {
   forwardRef,
   useCallback,
-  useEffect,
+  useId,
   useImperativeHandle,
   useRef,
   useState,
@@ -11,6 +11,7 @@ import { Trash2 } from "lucide-react";
 
 import { Button } from "@/presentation/components/ui/button";
 import { Input } from "@/presentation/components/ui/input";
+import { Modal } from "@/presentation/components/ui/modal";
 import { toUserMessage } from "@/presentation/lib/error-message";
 import { useSettings } from "@/shared/hooks/use-settings";
 
@@ -33,10 +34,11 @@ interface ConfirmDeleteButtonProps {
 
 /**
  * A reusable destructive-action control. Renders a Delete trigger; clicking (or a
- * parent calling `ref.open()`) opens a small confirmation dialog that runs
- * `onConfirm`. For high-stakes deletes (e.g. a whole study), pass `confirmPhrase` to
- * require the user to type it exactly before the Delete button enables. Deletes are
- * permanent, so the copy is explicit.
+ * parent calling `ref.open()`) opens a focus-trapped confirmation {@link Modal} that
+ * runs `onConfirm`. For high-stakes deletes (e.g. a whole study), pass `confirmPhrase`
+ * to require the user to type it exactly before Delete enables. Deletes are permanent,
+ * so the copy is explicit. Respects the "confirm before delete" setting for low-stakes
+ * deletes; a `confirmPhrase` delete always confirms.
  */
 export const ConfirmDeleteButton = forwardRef<
   ConfirmDeleteHandle,
@@ -55,11 +57,12 @@ export const ConfirmDeleteButton = forwardRef<
   ref,
 ) {
   const { settings } = useSettings();
+  const titleId = useId();
+  const descId = useId();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [typed, setTyped] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const cancelRef = useRef<HTMLButtonElement | null>(null);
 
   // Keep an always-current confirm() for the trigger/imperative paths without
   // re-creating the handle on every render.
@@ -77,17 +80,8 @@ export const ConfirmDeleteButton = forwardRef<
 
   useImperativeHandle(ref, () => ({ open: requestDelete }), [requestDelete]);
 
-  useEffect(() => {
-    if (!open) return;
-    cancelRef.current?.focus();
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !busy) close();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, busy]);
-
   function close() {
+    if (busy) return;
     setOpen(false);
     setTyped("");
     setError(null);
@@ -131,73 +125,60 @@ export const ConfirmDeleteButton = forwardRef<
         {iconOnly ? null : (triggerLabel ?? "Delete")}
       </Button>
 
-      {open ? (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          role="dialog"
-          aria-modal="true"
-          aria-label={title}
-          onClick={() => !busy && close()}
-        >
-          <div
-            className="w-full max-w-md space-y-4 rounded-lg border border-border bg-card p-5 shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="space-y-1.5">
-              <h2 className="text-base font-semibold text-foreground">{title}</h2>
-              <div className="text-sm text-muted-foreground">{description}</div>
-            </div>
-
-            {confirmPhrase ? (
-              <div className="space-y-1.5">
-                <label className="text-sm text-foreground">
-                  Type{" "}
-                  <span className="font-semibold text-foreground">
-                    {confirmPhrase}
-                  </span>{" "}
-                  to confirm:
-                </label>
-                <Input
-                  value={typed}
-                  onChange={(e) => setTyped(e.target.value)}
-                  autoComplete="off"
-                  autoFocus
-                  disabled={busy}
-                  aria-label="Confirmation text"
-                />
-              </div>
-            ) : null}
-
-            {error ? (
-              <p role="alert" className="text-sm text-destructive">
-                {error}
-              </p>
-            ) : null}
-
-            <div className="flex items-center justify-end gap-2">
-              <Button
-                ref={cancelRef}
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={close}
-                disabled={busy}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                variant="destructive"
-                size="sm"
-                onClick={() => void confirm()}
-                disabled={busy || !phraseOk}
-              >
-                {busy ? "Deleting…" : "Delete permanently"}
-              </Button>
-            </div>
+      <Modal
+        open={open}
+        onClose={close}
+        labelledById={titleId}
+        describedById={descId}
+      >
+        <div className="space-y-1.5">
+          <h2 id={titleId} className="text-base font-semibold text-foreground">
+            {title}
+          </h2>
+          <div id={descId} className="text-sm text-muted-foreground">
+            {description}
           </div>
         </div>
-      ) : null}
+
+        {confirmPhrase ? (
+          <div className="space-y-1.5">
+            <label htmlFor={`${descId}-phrase`} className="text-sm text-foreground">
+              Type{" "}
+              <span className="font-semibold text-foreground">{confirmPhrase}</span>{" "}
+              to confirm:
+            </label>
+            <Input
+              id={`${descId}-phrase`}
+              value={typed}
+              onChange={(e) => setTyped(e.target.value)}
+              autoComplete="off"
+              disabled={busy}
+              aria-label="Confirmation text"
+            />
+          </div>
+        ) : null}
+
+        {error ? (
+          <p role="alert" className="text-sm text-destructive">
+            {error}
+          </p>
+        ) : null}
+
+        <div className="flex items-center justify-end gap-2">
+          <Button type="button" variant="ghost" size="sm" onClick={close} disabled={busy}>
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            variant="destructive"
+            size="sm"
+            onClick={() => void confirm()}
+            disabled={busy || !phraseOk}
+          >
+            {busy ? "Deleting…" : "Delete permanently"}
+          </Button>
+        </div>
+      </Modal>
     </>
   );
 });

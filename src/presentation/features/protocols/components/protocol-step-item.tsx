@@ -42,31 +42,32 @@ export function ProtocolStepItem({
   const showActions = Boolean(onEdit || onRemove || onMoveUp || onMoveDown);
 
   return (
-    <div className="flex items-start gap-4 rounded-lg border border-border bg-card px-5 py-4">
+    <div className="group flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2">
       <span
         aria-hidden="true"
-        className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary"
+        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-semibold text-primary"
       >
         {position}
       </span>
 
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-          <p className="font-medium text-foreground">{step.title}</p>
-          <Badge variant="outline">{category.label}</Badge>
-          <Badge variant="secondary">{offsetLabel(step.offsetDays)}</Badge>
-        </div>
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-0.5">
+        <p className="truncate text-sm font-medium text-foreground">{step.title}</p>
+        <Badge variant="outline" className="shrink-0">{category.label}</Badge>
+        <Badge variant="secondary" className="shrink-0">{offsetLabel(step.offsetDays)}</Badge>
         {step.notes ? (
-          <p className="mt-1 text-sm text-muted-foreground">{step.notes}</p>
+          <span className="w-full truncate text-xs text-muted-foreground" title={step.notes}>
+            {step.notes}
+          </span>
         ) : null}
       </div>
 
       {showActions ? (
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="flex shrink-0 items-center gap-0.5 opacity-60 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
           {onMoveUp ? (
             <Button
               variant="ghost"
               size="icon"
+              className="h-7 w-7"
               onClick={onMoveUp}
               disabled={isFirst}
               aria-label={`Move "${step.title}" up`}
@@ -78,6 +79,7 @@ export function ProtocolStepItem({
             <Button
               variant="ghost"
               size="icon"
+              className="h-7 w-7"
               onClick={onMoveDown}
               disabled={isLast}
               aria-label={`Move "${step.title}" down`}
@@ -89,6 +91,7 @@ export function ProtocolStepItem({
             <Button
               variant="ghost"
               size="icon"
+              className="h-7 w-7"
               onClick={onEdit}
               aria-label={`Edit "${step.title}"`}
             >
@@ -99,6 +102,7 @@ export function ProtocolStepItem({
             <Button
               variant="ghost"
               size="icon"
+              className="h-7 w-7"
               onClick={onRemove}
               aria-label={`Remove "${step.title}" from the protocol`}
             >

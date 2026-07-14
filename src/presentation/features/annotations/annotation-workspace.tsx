@@ -29,6 +29,7 @@ import { resolveSelected } from "./annotation-geometry";
 import { RoiInspector } from "./roi-inspector";
 import { useAnnotations } from "./use-annotations";
 import { useAnnotationService } from "./annotation-service-context";
+import { useSettings } from "@/shared/hooks/use-settings";
 
 /**
  * The annotation workspace shown inside the image viewer for one stored image.
@@ -52,6 +53,7 @@ export function AnnotationWorkspace({
 }) {
   const service = useAnnotationService();
   const navigate = useNavigate();
+  const { settings } = useSettings();
   const { state, reload } = useAnnotations(storedFileId);
   const [mode, setMode] = useState<AnnotationMode>("select");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -262,7 +264,7 @@ export function AnnotationWorkspace({
       onNaturalSize={setImageDimensions}
       fill={isFullscreen}
       showCoordinates={isFullscreen}
-      {...(isFullscreen ? {} : { heightClass: "h-[28rem]" })}
+      {...(isFullscreen ? {} : { heightClass: "h-[32rem]" })}
       {...(readOnly
         ? {}
         : {
@@ -301,12 +303,14 @@ export function AnnotationWorkspace({
         />
       ) : null}
 
-      <RoiInspector
-        annotation={selectedForInspector}
-        imageDimensions={imageDimensions}
-        hasAnnotations={annotations.length > 0}
-        readOnly={readOnly}
-      />
+      {settings.showMeasurementPanel || selected ? (
+        <RoiInspector
+          annotation={selectedForInspector}
+          imageDimensions={imageDimensions}
+          hasAnnotations={annotations.length > 0}
+          readOnly={readOnly}
+        />
+      ) : null}
 
       {selected ? (
         <LinkedAnnotationsPanel

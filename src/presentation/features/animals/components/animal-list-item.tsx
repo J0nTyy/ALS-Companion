@@ -32,7 +32,7 @@ export function AnimalListItem({
 
   return (
     <div
-      className="flex items-center gap-4 rounded-lg border border-border bg-card px-5 py-4"
+      className="group flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2.5"
       onContextMenu={(e) =>
         contextMenu.open(
           e,
@@ -46,29 +46,32 @@ export function AnimalListItem({
       <Link
         to={to}
         aria-label={`View ${animal.animalIdentifier}`}
-        className="group min-w-0 flex-1 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        className="min-w-0 flex-1 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       >
-        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-          <p className="truncate font-medium text-foreground group-hover:text-primary">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+          <p className="truncate text-sm font-medium text-foreground group-hover:text-primary">
             {animal.animalIdentifier}
           </p>
           <span className="text-xs text-muted-foreground">
             {ANIMAL_SEX_META[animal.sex].label}
           </span>
           {animal.treatmentGroup ? (
-            <Badge variant="secondary">{animal.treatmentGroup}</Badge>
+            <Badge variant="secondary" className="shrink-0">
+              {animal.treatmentGroup}
+            </Badge>
+          ) : null}
+          {meta.length > 0 ? (
+            <span className="w-full truncate text-xs text-muted-foreground">
+              {meta.join(" · ")}
+            </span>
           ) : null}
         </div>
-        {meta.length > 0 ? (
-          <p className="mt-1 truncate text-sm text-muted-foreground">
-            {meta.join(" · ")}
-          </p>
-        ) : null}
       </Link>
       {onEdit ? (
         <Button
           variant="ghost"
           size="sm"
+          className="h-8 shrink-0 opacity-60 transition-opacity group-hover:opacity-100 focus-within:opacity-100"
           onClick={onEdit}
           aria-label={`Edit ${animal.animalIdentifier}`}
         >

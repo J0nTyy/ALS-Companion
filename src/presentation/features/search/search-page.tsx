@@ -7,6 +7,8 @@ import type {
   SearchQuery,
 } from "@/domain/entities/search";
 import { Input } from "@/presentation/components/ui/input";
+import { HelpHint } from "@/presentation/features/help/help-hint";
+import { HELP } from "@/presentation/features/help/help-sections";
 import { SearchFilterBar } from "./components/search-filter-bar";
 import { EMPTY_SEARCH_FORM, type SearchFormValues } from "./search-form";
 import { SearchResultList } from "./components/search-result-list";
@@ -65,7 +67,10 @@ export function SearchPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-foreground">Search</h1>
+        <h1 className="flex items-center gap-2 text-2xl font-semibold text-foreground">
+          Search
+          <HelpHint section={HELP.search} label="search" className="h-6 w-6" />
+        </h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Find anything across your studies — no folder-hunting required.
         </p>

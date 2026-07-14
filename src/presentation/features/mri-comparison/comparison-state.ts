@@ -33,6 +33,16 @@ export const INITIAL_COMPARISON_STATE: ComparisonState = {
   sync: { zoom: false, pan: false },
 };
 
+/** Map the "default comparison sync" preference to concrete sync settings. */
+export function syncFromDefault(
+  mode: "none" | "zoom" | "pan" | "both",
+): SyncSettings {
+  return {
+    zoom: mode === "zoom" || mode === "both",
+    pan: mode === "pan" || mode === "both",
+  };
+}
+
 export type ComparisonAction =
   | { type: "zoom"; side: ComparisonSide; factor: number }
   | { type: "pan"; side: ComparisonSide; dx: number; dy: number }

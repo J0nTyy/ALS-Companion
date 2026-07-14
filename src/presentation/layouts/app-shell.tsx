@@ -1,11 +1,11 @@
-import { useCallback, useState } from "react";
-import { Outlet } from "react-router-dom";
-import { PanelLeft } from "lucide-react";
+import { Suspense, useCallback, useEffect, useState } from "react";
+import { Outlet, useLocation } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 
-import { Button } from "@/presentation/components/ui/button";
 import { ThemeToggle } from "@/presentation/components/theme-toggle";
 import { GlobalSearchBox } from "@/presentation/features/search/global-search-box";
 import { useSettings } from "@/shared/hooks/use-settings";
+import { recordWorkspacePath } from "@/shared/lib/last-workspace";
 import { AppSidebar } from "./app-sidebar";
 
 const COLLAPSE_KEY = "als.sidebar.collapsed";
@@ -34,10 +34,17 @@ function readCollapsed(): boolean | null {
  */
 export function AppShell() {
   const { settings } = useSettings();
+  const location = useLocation();
   // Remembered explicit choice wins; otherwise fall back to the Settings default.
   const [collapsed, setCollapsed] = useState(
     () => readCollapsed() ?? settings.sidebarDefaultCollapsed,
   );
+
+  // Remember the last study/animal the researcher visited (for the dashboard's
+  // "resume" card), when the preference is on.
+  useEffect(() => {
+    recordWorkspacePath(location.pathname, settings.rememberLastWorkspace);
+  }, [location.pathname, settings.rememberLastWorkspace]);
 
   const toggle = useCallback(() => {
     setCollapsed((current) => {
@@ -53,29 +60,41 @@ export function AppShell() {
 
   return (
     <div className="flex h-full w-full overflow-hidden bg-background">
-      <AppSidebar collapsed={collapsed} />
+      {settings.enhancedKeyboardNav ? (
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-3 focus:z-50 focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-primary-foreground focus:shadow-lg"
+        >
+          Skip to main content
+        </a>
+      ) : null}
+
+      <AppSidebar collapsed={collapsed} onToggle={toggle} />
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border px-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggle}
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            aria-pressed={collapsed}
-            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            <PanelLeft />
-          </Button>
           <GlobalSearchBox />
           <div className="ml-auto">
             <ThemeToggle />
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto">
+        <main id="main-content" tabIndex={-1} className="flex-1 overflow-y-auto">
           <div className="mx-auto w-full max-w-screen-2xl animate-fade-in px-6 py-6">
-            <Outlet />
+            <Suspense
+              fallback={
+                <div
+                  className="flex items-center justify-center py-24 text-muted-foreground"
+                  role="status"
+                  aria-live="polite"
+                >
+                  <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+                  <span className="sr-only">Loading…</span>
+                </div>
+              }
+            >
+              <Outlet />
+            </Suspense>
           </div>
         </main>
       </div>

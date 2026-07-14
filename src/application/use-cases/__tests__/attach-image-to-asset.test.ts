@@ -128,6 +128,9 @@ function setup(options: SetupOptions = {}) {
     async save(input) {
       saves.push(input);
     },
+    async readManagedBytes() {
+      return new Uint8Array();
+    },
     async resolveDisplayUrl(relativePath) {
       return `asset://${relativePath}`;
     },

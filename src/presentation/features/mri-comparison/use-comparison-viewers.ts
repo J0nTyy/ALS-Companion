@@ -1,19 +1,22 @@
 import { useEffect, useMemo, useReducer } from "react";
 
 import type { ImageViewerController } from "@/presentation/features/storage/image-transform";
+import type { ComparisonSyncDefault } from "@/shared/config/settings";
 import {
   comparisonReducer,
   INITIAL_COMPARISON_STATE,
+  syncFromDefault,
   type ComparisonState,
   type SyncSettings,
 } from "./comparison-state";
 
 /**
- * Session-scoped memory of the last sync settings. A module-level value persists
- * while the app is open (across navigating away and back to the workspace) and is
- * naturally cleared when the app closes — matching "remember during the session".
+ * Session-scoped memory of the last sync settings. Null until the workspace first
+ * mounts this session, at which point it seeds from the researcher's "default
+ * comparison sync" preference; thereafter it remembers what the user toggled, until
+ * the app closes.
  */
-let rememberedSync: SyncSettings = { ...INITIAL_COMPARISON_STATE.sync };
+let rememberedSync: SyncSettings | null = null;
 
 /**
  * Owns the two viewers' transforms + sync settings and exposes sync-aware
@@ -22,13 +25,13 @@ let rememberedSync: SyncSettings = { ...INITIAL_COMPARISON_STATE.sync };
  * relevant sync is on. Reuses the single {@link comparisonReducer}, so there is no
  * duplicated viewer logic.
  */
-export function useComparisonViewers() {
+export function useComparisonViewers(syncDefault: ComparisonSyncDefault = "none") {
   const [state, dispatch] = useReducer(
     comparisonReducer,
     undefined,
     (): ComparisonState => ({
       ...INITIAL_COMPARISON_STATE,
-      sync: { ...rememberedSync },
+      sync: rememberedSync ?? syncFromDefault(syncDefault),
     }),
   );
 

@@ -1,7 +1,8 @@
-import { useId, useState } from "react";
+import { useEffect, useState } from "react";
 import { AlertTriangle, ListChecks, Plus } from "lucide-react";
 
 import type { TimelineEvent } from "@/domain/entities/timeline-event";
+import { CollapsibleSection } from "@/presentation/components/collapsible-section";
 import { EmptyState } from "@/presentation/components/empty-state";
 import { LoadingState } from "@/presentation/components/loading-state";
 import { Button } from "@/presentation/components/ui/button";
@@ -47,18 +48,24 @@ export function TimelineSection({
   animalId,
   studyId,
   readOnly = false,
+  onCountChange,
 }: {
   animalId: string;
   studyId: string;
   readOnly?: boolean;
+  onCountChange?: (count: number) => void;
 }) {
-  const headingId = useId();
   const service = useTimelineEventsService();
   const deletion = useDeletionService();
   const { state, reload } = useTimelineEvents(animalId);
   const [mode, setMode] = useState<SectionMode>({ kind: "list" });
 
   const effectiveMode: SectionMode = readOnly ? { kind: "list" } : mode;
+  const eventCount = state.status === "ready" ? state.events.length : undefined;
+
+  useEffect(() => {
+    if (eventCount !== undefined) onCountChange?.(eventCount);
+  }, [eventCount, onCountChange]);
 
   async function handleCreate(values: TimelineEventFormValues) {
     await service.create({
@@ -111,33 +118,17 @@ export function TimelineSection({
     </Button>
   );
 
-  const showAdd =
-    !readOnly &&
-    state.status === "ready" &&
-    effectiveMode.kind === "list" &&
-    state.events.length > 0;
-
   const highlightId =
     state.status === "ready" ? newestPlannedId(state.events) : undefined;
 
   return (
-    <section aria-labelledby={headingId} className="space-y-4">
-      <div className="flex items-end justify-between gap-3 border-t border-border pt-6">
-        <div>
-          <h2
-            id={headingId}
-            className="text-lg font-semibold tracking-tight text-foreground"
-          >
-            Experiment timeline
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            The chronological workflow of steps planned and completed for this
-            animal.
-          </p>
-        </div>
-        {showAdd ? addButton : null}
-      </div>
-
+    <CollapsibleSection
+      title="Experiment timeline"
+      description="The chronological workflow of steps planned and completed for this animal."
+      {...(eventCount !== undefined ? { count: eventCount } : {})}
+      storageKey={`als.section.${animalId}.timeline`}
+    >
+      <div className="space-y-4">
       {readOnly && state.status === "ready" ? (
         <p className="rounded-md border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
           This study is archived, so the timeline is read-only. Restore the study
@@ -219,7 +210,11 @@ export function TimelineSection({
             {...(readOnly ? {} : { action: addButton })}
           />
         ) : (
-          <ul className="space-y-3">
+          <div className="space-y-3">
+            {!readOnly ? (
+              <div className="flex justify-end">{addButton}</div>
+            ) : null}
+            <ul className="space-y-3">
             {state.events.map((event) => (
               <li key={event.id} className="space-y-3">
                 <TimelineEventItem
@@ -256,9 +251,11 @@ export function TimelineSection({
                 ) : null}
               </li>
             ))}
-          </ul>
+            </ul>
+          </div>
         )
       ) : null}
-    </section>
+      </div>
+    </CollapsibleSection>
   );
 }

@@ -5,6 +5,8 @@ import { AlertTriangle, ArrowLeft, Archive, Pencil } from "lucide-react";
 import type { Study } from "@/domain/entities/study";
 import { isTauri } from "@/infrastructure/platform/environment";
 import { PageHeader } from "@/presentation/components/page-header";
+import { DetailLayout } from "@/presentation/components/detail-layout";
+import { HELP } from "@/presentation/features/help/help-sections";
 import { EmptyState } from "@/presentation/components/empty-state";
 import { LoadingState } from "@/presentation/components/loading-state";
 import { Button } from "@/presentation/components/ui/button";
@@ -156,6 +158,7 @@ export function StudyDetailPage() {
     <div className="space-y-8">
       <PageHeader
         title={study.name}
+        help={HELP.studies}
         description={study.strain}
         actions={backButton}
       />
@@ -208,6 +211,8 @@ function StudyDetailView({
   const [confirmingArchive, setConfirmingArchive] = useState(false);
   const [archiving, setArchiving] = useState(false);
   const [archiveError, setArchiveError] = useState<string | null>(null);
+  const [animalCount, setAnimalCount] = useState<number | undefined>(undefined);
+  const [stepCount, setStepCount] = useState<number | undefined>(undefined);
 
   const confirmHeadingId = useId();
   const confirmHeadingRef = useRef<HTMLHeadingElement>(null);
@@ -246,8 +251,17 @@ function StudyDetailView({
     }
   }
 
-  return (
-    <div className="max-w-2xl space-y-6">
+  const jumpLink = (href: string, label: string) => (
+    <a
+      href={href}
+      className="block rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      {label}
+    </a>
+  );
+
+  const aside = (
+    <>
       <Card
         onContextMenu={(e) =>
           contextMenu.open(
@@ -255,120 +269,150 @@ function StudyDetailView({
             buildStudyContextMenu({
               onEdit,
               isArchived,
-              ...(isArchived
-                ? {}
-                : { onArchive: () => setConfirmingArchive(true) }),
+              ...(isArchived ? {} : { onArchive: () => setConfirmingArchive(true) }),
               onDelete: () => deleteRef.current?.open(),
             }),
           )
         }
       >
-        <CardHeader>
+        <CardHeader className="pb-3">
           <div className="flex items-center justify-between gap-3">
-            <CardTitle>Details</CardTitle>
+            <CardTitle className="text-base">Overview</CardTitle>
             <StudyStatusBadge status={study.status} />
           </div>
         </CardHeader>
-        <CardContent className="space-y-5">
+        <CardContent className="space-y-4">
           <DetailRow label="Strain or line" value={study.strain} />
-          <DetailRow
-            label="Description"
-            value={study.description ?? "No description"}
-            muted={study.description === undefined}
-          />
-          <div className="grid grid-cols-1 gap-4 border-t border-border pt-4 sm:grid-cols-2">
+          <div className="grid grid-cols-2 gap-4">
+            <DetailRow
+              label="Animals"
+              value={animalCount === undefined ? "—" : String(animalCount)}
+            />
+            <DetailRow
+              label="Protocol steps"
+              value={stepCount === undefined ? "—" : String(stepCount)}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4 border-t border-border pt-4">
             <DetailRow label="Created" value={formatDate(study.createdAt)} />
-            <DetailRow label="Last updated" value={formatDate(study.updatedAt)} />
+            <DetailRow label="Updated" value={formatDate(study.updatedAt)} />
           </div>
         </CardContent>
       </Card>
 
-      <div className="space-y-3">
-        <div className="flex flex-wrap items-center gap-3">
-          <Button onClick={onEdit}>
-            <Pencil />
-            Edit study
-          </Button>
-          {!isArchived ? (
-            <Button
-              ref={archiveTriggerRef}
-              variant="outline"
-              onClick={() => setConfirmingArchive(true)}
-              disabled={confirmingArchive}
-            >
-              <Archive />
-              Archive
-            </Button>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              This study is archived. Edit it to change its status.
-            </p>
-          )}
-        </div>
-
-        {confirmingArchive ? (
-          <div
-            role="group"
-            aria-labelledby={confirmHeadingId}
-            className="space-y-3 rounded-lg border border-border bg-muted/40 p-4"
+      <div className="space-y-2">
+        <Button onClick={onEdit} className="w-full justify-start">
+          <Pencil />
+          Edit study
+        </Button>
+        {!isArchived ? (
+          <Button
+            ref={archiveTriggerRef}
+            variant="outline"
+            onClick={() => setConfirmingArchive(true)}
+            disabled={confirmingArchive}
+            className="w-full justify-start"
           >
-            <h3
-              id={confirmHeadingId}
-              ref={confirmHeadingRef}
-              tabIndex={-1}
-              className="text-sm font-semibold text-foreground focus:outline-none"
-            >
-              Archive this study?
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">{study.name}</span>{" "}
-              will be hidden from your active list but never deleted — you can
-              view it again anytime with “Show archived”.
-            </p>
-            {archiveError ? (
-              <p role="alert" className="text-sm text-destructive">
-                {archiveError}
-              </p>
-            ) : null}
-            <div className="flex items-center gap-3">
-              <Button
-                variant="destructive"
-                onClick={() => void handleArchive()}
-                disabled={archiving}
-              >
-                {archiving ? "Archiving…" : "Archive study"}
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={cancelArchive}
-                disabled={archiving}
-              >
-                Cancel
-              </Button>
-            </div>
-          </div>
-        ) : null}
+            <Archive />
+            Archive
+          </Button>
+        ) : (
+          <p className="px-1 text-xs text-muted-foreground">
+            This study is archived. Edit it to change its status.
+          </p>
+        )}
       </div>
 
-      <ProtocolSection
-        studyId={study.id}
-        readOnly={study.status === "archived"}
-      />
+      {confirmingArchive ? (
+        <div
+          role="group"
+          aria-labelledby={confirmHeadingId}
+          className="space-y-3 rounded-lg border border-border bg-muted/40 p-4"
+        >
+          <h3
+            id={confirmHeadingId}
+            ref={confirmHeadingRef}
+            tabIndex={-1}
+            className="text-sm font-semibold text-foreground focus:outline-none"
+          >
+            Archive this study?
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">{study.name}</span> will
+            be hidden from your active list but never deleted — you can view it
+            again anytime with “Show archived”.
+          </p>
+          {archiveError ? (
+            <p role="alert" className="text-sm text-destructive">
+              {archiveError}
+            </p>
+          ) : null}
+          <div className="flex items-center gap-3">
+            <Button
+              variant="destructive"
+              onClick={() => void handleArchive()}
+              disabled={archiving}
+            >
+              {archiving ? "Archiving…" : "Archive study"}
+            </Button>
+            <Button variant="ghost" onClick={cancelArchive} disabled={archiving}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      ) : null}
 
-      <AnimalsSection
-        studyId={study.id}
-        readOnly={study.status === "archived"}
-      />
+      <div className="rounded-xl border border-border bg-card p-2">
+        <p className="px-2 pb-1 pt-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          Jump to
+        </p>
+        {jumpLink("#protocol", "Protocol")}
+        {jumpLink("#animals", "Animals")}
+        {jumpLink("#danger", "Danger zone")}
+      </div>
+    </>
+  );
 
-      <Card className="border-destructive/40">
+  return (
+    <DetailLayout aside={aside}>
+      {study.description ? (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">About</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="whitespace-pre-line text-sm leading-relaxed text-foreground">
+              {study.description}
+            </p>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      <div id="protocol" className="scroll-mt-4">
+        <ProtocolSection
+          studyId={study.id}
+          readOnly={isArchived}
+          onCountChange={setStepCount}
+        />
+      </div>
+
+      <div id="animals" className="scroll-mt-4">
+        <AnimalsSection
+          studyId={study.id}
+          readOnly={isArchived}
+          onCountChange={setAnimalCount}
+        />
+      </div>
+
+      <Card id="danger" className="scroll-mt-4 border-destructive/40">
         <CardHeader>
           <CardTitle className="text-destructive">Danger zone</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Permanently delete this study and everything inside it — every
-            animal, observation, timeline event, MRI session, and attached file.
-            This cannot be undone. To archive instead, use the button above.
+            Permanently delete this study and everything inside it — every animal,
+            observation, timeline event, MRI session, and attached file. This
+            cannot be undone. To archive instead, use the button in the sidebar.
           </p>
           <ConfirmDeleteButton
             ref={deleteRef}
@@ -378,9 +422,7 @@ function StudyDetailView({
             description={
               <>
                 This permanently removes{" "}
-                <span className="font-medium text-foreground">
-                  {study.name}
-                </span>{" "}
+                <span className="font-medium text-foreground">{study.name}</span>{" "}
                 and all of its animals, observations, timeline events, MRI
                 sessions, protocol, and attached image files. This action cannot
                 be undone.
@@ -393,7 +435,7 @@ function StudyDetailView({
           />
         </CardContent>
       </Card>
-    </div>
+    </DetailLayout>
   );
 }
 

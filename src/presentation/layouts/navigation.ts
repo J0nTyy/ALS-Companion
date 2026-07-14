@@ -1,4 +1,5 @@
 import {
+  BarChart3,
   Columns2,
   FlaskConical,
   LayoutDashboard,
@@ -25,6 +26,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/studies", label: "Studies", icon: FlaskConical },
   { to: "/compare", label: "MRI Compare", icon: Columns2 },
+  { to: "/analytics", label: "Analytics", icon: BarChart3 },
   { to: "/publish", label: "Publish", icon: Package },
   { to: "/settings", label: "Settings", icon: Settings },
 ];

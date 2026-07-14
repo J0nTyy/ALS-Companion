@@ -14,6 +14,14 @@ export interface FileStore {
   save(input: { sourcePath: string; relativePath: string }): Promise<void>;
 
   /**
+   * Read the raw bytes of a managed file at `relativePath` (relative to the managed
+   * root). Used to load image bytes for embedding in exported reports. The path is
+   * validated against traversal by the adapter; reading only ever touches the app's
+   * own managed storage.
+   */
+  readManagedBytes(relativePath: string): Promise<Uint8Array>;
+
+  /**
    * Resolve a stored relative path to a URL the webview can load in an `<img>`
    * (via the sandboxed asset protocol). Never returns a raw filesystem path.
    */

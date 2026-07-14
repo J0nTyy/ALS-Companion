@@ -1,5 +1,7 @@
-import { useId, useState, type FormEvent } from "react";
+import { useEffect, useId, useState, type FormEvent } from "react";
 import { AlertTriangle, ClipboardList, Pencil, Plus } from "lucide-react";
+
+import { CollapsibleSection } from "@/presentation/components/collapsible-section";
 
 import type {
   ProtocolStep,
@@ -45,16 +47,23 @@ function moveId(ids: string[], from: number, to: number): string[] {
 export function ProtocolSection({
   studyId,
   readOnly = false,
+  onCountChange,
 }: {
   studyId: string;
   readOnly?: boolean;
+  onCountChange?: (count: number) => void;
 }) {
-  const headingId = useId();
   const service = useProtocolService();
   const { state, reload } = useProtocol(studyId);
   const [mode, setMode] = useState<Mode>({ kind: "list" });
 
   const effectiveMode: Mode = readOnly ? { kind: "list" } : mode;
+  const protocol = state.status === "ready" ? state.protocol : null;
+  const stepCount = protocol?.steps.length;
+
+  useEffect(() => {
+    if (state.status === "ready") onCountChange?.(protocol?.steps.length ?? 0);
+  }, [state.status, protocol?.steps.length, onCountChange]);
 
   async function handleCreateProtocol() {
     await service.createProtocol({ studyId, name: DEFAULT_PROTOCOL_NAME });
@@ -124,21 +133,13 @@ export function ProtocolSection({
   );
 
   return (
-    <section aria-labelledby={headingId} className="space-y-4">
-      <div className="border-t border-border pt-6">
-        <h2
-          id={headingId}
-          className="text-lg font-semibold tracking-tight text-foreground"
-        >
-          Protocol
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          Define the experiment workflow once. New animals in this study start
-          with these steps as their timeline; editing the protocol only affects
-          animals added afterward.
-        </p>
-      </div>
-
+    <CollapsibleSection
+      title="Protocol"
+      description="Define the experiment workflow once. New animals in this study start with these steps as their timeline; editing the protocol only affects animals added afterward."
+      {...(stepCount !== undefined ? { count: stepCount } : {})}
+      storageKey={`als.section.${studyId}.protocol`}
+    >
+      <div className="space-y-4">
       {readOnly && state.status === "ready" ? (
         <p className="rounded-md border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
           This study is archived, so its protocol is read-only. Restore the study
@@ -194,7 +195,8 @@ export function ProtocolSection({
       {state.status === "ready" && state.protocol !== null
         ? renderProtocol(state.protocol)
         : null}
-    </section>
+      </div>
+    </CollapsibleSection>
   );
 
   function renderProtocol(protocol: ProtocolWithSteps) {
@@ -280,7 +282,7 @@ export function ProtocolSection({
             {...(readOnly ? {} : { action: addStepButton })}
           />
         ) : (
-          <ol className="space-y-3">
+          <ol className="space-y-2">
             {protocol.steps.map((step, index) => (
               <li key={step.id}>
                 <ProtocolStepItem

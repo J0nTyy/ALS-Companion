@@ -35,3 +35,10 @@ initial_prompt.txt
 # Generated sample/test data (regenerate with scripts/) + personal dev launcher
 sample-data/
 run-app.cmd
+
+# Bundled sample dataset (seed DB + images) for test builds — not committed
+src-tauri/seed/
+
+# Python bytecode cache
+__pycache__/
+*.pyc

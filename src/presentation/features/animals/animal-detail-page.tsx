@@ -6,6 +6,8 @@ import { ANIMAL_SEX_META, type Animal } from "@/domain/entities/animal";
 import type { Study } from "@/domain/entities/study";
 import { isTauri } from "@/infrastructure/platform/environment";
 import { PageHeader } from "@/presentation/components/page-header";
+import { DetailLayout } from "@/presentation/components/detail-layout";
+import { HELP } from "@/presentation/features/help/help-sections";
 import { EmptyState } from "@/presentation/components/empty-state";
 import { LoadingState } from "@/presentation/components/loading-state";
 import { Button } from "@/presentation/components/ui/button";
@@ -57,6 +59,8 @@ export function AnimalDetailPage() {
   const [state, setState] = useState<DetailState>(() =>
     isTauri() ? { status: "loading" } : { status: "unavailable" },
   );
+  const [obsCount, setObsCount] = useState<number | undefined>(undefined);
+  const [eventCount, setEventCount] = useState<number | undefined>(undefined);
 
   const load = useCallback(async () => {
     if (!isTauri()) {
@@ -158,85 +162,122 @@ export function AnimalDetailPage() {
   const { study, animal } = state;
   const readOnly = study.status === "archived";
 
-  return (
-    <div className="space-y-8">
-      <PageHeader
-        title={animal.animalIdentifier}
-        description={study.name}
-        actions={backButton}
-      />
+  const jumpLink = (href: string, label: string) => (
+    <a
+      href={href}
+      className="block rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      {label}
+    </a>
+  );
 
-      <div className="max-w-2xl space-y-6">
-        <Card
-          onContextMenu={(e) =>
-            contextMenu.open(
-              e,
-              buildAnimalContextMenu({
-                onDelete: () => deleteRef.current?.open(),
-              }),
-            )
-          }
-        >
-          <CardHeader>
-            <div className="flex items-center justify-between gap-3">
-              <CardTitle>Animal details</CardTitle>
-              <ConfirmDeleteButton
-                ref={deleteRef}
-                triggerLabel="Delete animal"
-                title="Delete this animal permanently?"
-                description={
-                  <>
-                    This permanently removes{" "}
-                    <span className="font-medium text-foreground">
-                      {animal.animalIdentifier}
-                    </span>{" "}
-                    and all of its observations, timeline events, MRI sessions,
-                    and attached image files. This action cannot be undone.
-                  </>
-                }
-                onConfirm={async () => {
-                  await deletion.deleteAnimal(animal.id);
-                  navigate(`/studies/${study.id}`);
-                }}
-              />
-            </div>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+  const aside = (
+    <>
+      <Card
+        onContextMenu={(e) =>
+          contextMenu.open(
+            e,
+            buildAnimalContextMenu({
+              onDelete: () => deleteRef.current?.open(),
+            }),
+          )
+        }
+      >
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Overview</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
             <DetailRow label="Sex" value={ANIMAL_SEX_META[animal.sex].label} />
             <DetailRow
               label="Date of birth"
               value={
-                animal.dateOfBirth
-                  ? formatDateOnly(animal.dateOfBirth)
-                  : "Not recorded"
+                animal.dateOfBirth ? formatDateOnly(animal.dateOfBirth) : "Not recorded"
               }
               muted={animal.dateOfBirth === undefined}
             />
+          </div>
+          <DetailRow
+            label="Mutation or genotype"
+            value={animal.mutation ?? "Not recorded"}
+            muted={animal.mutation === undefined}
+          />
+          <DetailRow
+            label="Treatment group"
+            value={animal.treatmentGroup ?? "Not recorded"}
+            muted={animal.treatmentGroup === undefined}
+          />
+          <div className="grid grid-cols-2 gap-4 border-t border-border pt-4">
             <DetailRow
-              label="Mutation or genotype"
-              value={animal.mutation ?? "Not recorded"}
-              muted={animal.mutation === undefined}
+              label="Observations"
+              value={obsCount === undefined ? "—" : String(obsCount)}
             />
             <DetailRow
-              label="Treatment group"
-              value={animal.treatmentGroup ?? "Not recorded"}
-              muted={animal.treatmentGroup === undefined}
+              label="Timeline events"
+              value={eventCount === undefined ? "—" : String(eventCount)}
             />
-          </CardContent>
-        </Card>
+          </div>
+        </CardContent>
+      </Card>
 
-        <ObservationsSection
-          animalId={animal.id}
-          studyId={study.id}
-          readOnly={readOnly}
-        />
+      <ConfirmDeleteButton
+        ref={deleteRef}
+        triggerLabel="Delete animal"
+        title="Delete this animal permanently?"
+        description={
+          <>
+            This permanently removes{" "}
+            <span className="font-medium text-foreground">
+              {animal.animalIdentifier}
+            </span>{" "}
+            and all of its observations, timeline events, MRI sessions, and
+            attached image files. This action cannot be undone.
+          </>
+        }
+        onConfirm={async () => {
+          await deletion.deleteAnimal(animal.id);
+          navigate(`/studies/${study.id}`);
+        }}
+      />
 
-        <TimelineSection
-          animalId={animal.id}
-          studyId={study.id}
-          readOnly={readOnly}
-        />
+      <div className="rounded-xl border border-border bg-card p-2">
+        <p className="px-2 pb-1 pt-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          Jump to
+        </p>
+        {jumpLink("#observations", "Observations")}
+        {jumpLink("#timeline", "Experiment timeline")}
       </div>
+    </>
+  );
+
+  return (
+    <div className="space-y-8">
+      <PageHeader
+        title={animal.animalIdentifier}
+        help={HELP.animals}
+        description={study.name}
+        actions={backButton}
+      />
+
+      <DetailLayout aside={aside}>
+        <div id="observations" className="scroll-mt-4">
+          <ObservationsSection
+            animalId={animal.id}
+            studyId={study.id}
+            readOnly={readOnly}
+            onCountChange={setObsCount}
+          />
+        </div>
+
+        <div id="timeline" className="scroll-mt-4">
+          <TimelineSection
+            animalId={animal.id}
+            studyId={study.id}
+            readOnly={readOnly}
+            onCountChange={setEventCount}
+          />
+        </div>
+      </DetailLayout>
     </div>
   );
 }

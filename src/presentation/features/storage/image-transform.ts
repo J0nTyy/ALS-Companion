@@ -13,7 +13,8 @@ export interface ImageTransform {
 }
 
 export const MIN_SCALE = 1;
-export const MAX_SCALE = 8;
+// Up to 20× (2000%) so fine MRI/histology detail can be inspected closely.
+export const MAX_SCALE = 20;
 
 export const IDENTITY_TRANSFORM: ImageTransform = {
   scale: 1,

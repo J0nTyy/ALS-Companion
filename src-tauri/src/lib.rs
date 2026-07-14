@@ -386,6 +386,15 @@ fn delete_managed_files(
     Ok(())
 }
 
+/// Read the raw bytes of a managed file (used to embed images in exported reports).
+/// The path is validated by `resolve_managed_path`, so only files inside the app's
+/// own managed storage can be read — the webview can never read arbitrary files.
+#[tauri::command]
+fn read_managed_file(app: tauri::AppHandle, relative_path: String) -> Result<Vec<u8>, String> {
+    let source = resolve_managed_path(&app, &relative_path)?;
+    std::fs::read(&source).map_err(|e| format!("Could not read {relative_path}: {e}"))
+}
+
 /// One export file: a plain filename plus its raw bytes.
 #[derive(serde::Deserialize)]
 struct ExportFileArg {
@@ -422,9 +431,61 @@ fn write_export_files(
     Ok(())
 }
 
+/// On a FRESH install, seed the bundled sample dataset so the app opens with data to
+/// explore. Copies the bundled seed database into the app's config directory (where
+/// the SQL plugin opens it) and the bundled managed images into the app's local-data
+/// `images` folder — but ONLY when they don't already exist, so an existing user's
+/// real data is never touched. Best-effort: any failure is logged and ignored so the
+/// app still starts (just without the sample data).
+fn seed_bundled_data(app: &tauri::AppHandle) {
+    use std::fs;
+    use tauri::{path::BaseDirectory, Manager};
+
+    // 1. Database — copy the bundled seed DB when the app has no database yet.
+    if let Ok(config_dir) = app.path().app_config_dir() {
+        let db = config_dir.join("als_research_companion.db");
+        if !db.exists() {
+            let _ = fs::create_dir_all(&config_dir);
+            if let Ok(seed) =
+                app.path().resolve("seed/als_research_companion.db", BaseDirectory::Resource)
+            {
+                if seed.exists() {
+                    if let Err(e) = fs::copy(&seed, &db) {
+                        eprintln!("Could not seed sample database: {e}");
+                    }
+                }
+            }
+        }
+    }
+
+    // 2. Managed images — copy the bundled images when there is no images folder yet.
+    if let Ok(local_dir) = app.path().app_local_data_dir() {
+        let images = local_dir.join("images");
+        if !images.exists() {
+            let _ = fs::create_dir_all(&images);
+            if let Ok(seed_images) = app.path().resolve("seed/images", BaseDirectory::Resource) {
+                if let Ok(entries) = fs::read_dir(&seed_images) {
+                    for entry in entries.flatten() {
+                        let path = entry.path();
+                        if path.is_file() {
+                            if let Some(name) = path.file_name() {
+                                let _ = fs::copy(&path, images.join(name));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .setup(|app| {
+            seed_bundled_data(app.handle());
+            Ok(())
+        })
         .plugin(
             tauri_plugin_sql::Builder::default()
                 .add_migrations(DB_URL, migrations())
@@ -434,7 +495,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             attach_image_file,
             delete_managed_files,
-            write_export_files
+            write_export_files,
+            read_managed_file
         ])
         .run(tauri::generate_context!())
         .expect("error while running the ALS Research Companion application");

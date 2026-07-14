@@ -18,6 +18,39 @@ export const ACCENT_META: Record<AccentColor, { label: string; swatch: string }>
 
 export type Density = "comfortable" | "compact";
 
+export const ANNOTATION_COLORS = [
+  "#f59e0b",
+  "#38bdf8",
+  "#f43f5e",
+  "#a78bfa",
+  "#34d399",
+] as const;
+export type AnnotationColor = (typeof ANNOTATION_COLORS)[number];
+
+export type AnnotationSize = "small" | "medium" | "large";
+export const ANNOTATION_SIZE_PX: Record<AnnotationSize, number> = {
+  small: 2,
+  medium: 3,
+  large: 5,
+};
+
+export type WheelSensitivity = "low" | "medium" | "high";
+/** Per wheel-tick zoom factor. Larger = faster zoom. */
+export const WHEEL_STEP: Record<WheelSensitivity, number> = {
+  low: 1.03,
+  medium: 1.05,
+  high: 1.1,
+};
+
+export type ComparisonSyncDefault = "none" | "zoom" | "pan" | "both";
+
+/** Printable page size for exported reports. */
+export type PageSize = "letter" | "a4";
+export const PAGE_SIZE_META: Record<PageSize, { label: string }> = {
+  letter: { label: "US Letter (8.5 × 11 in)" },
+  a4: { label: "A4 (210 × 297 mm)" },
+};
+
 export interface AppSettings {
   accentColor: AccentColor;
   density: Density;
@@ -29,6 +62,44 @@ export interface AppSettings {
   /** When false, low-stakes deletes skip the confirm dialog (whole-study still confirms). */
   confirmBeforeDelete: boolean;
   defaultExportFormat: ExportFormat;
+  // --- viewer / annotation (v2.0.2) ---
+  annotationColor: AnnotationColor;
+  annotationSize: AnnotationSize;
+  /** Decimal places for derived measurements in the ROI inspector. */
+  measurementPrecision: number;
+  wheelSensitivity: WheelSensitivity;
+  /** Show the live cursor-coordinate readout in the annotation viewer. */
+  showCoordinates: boolean;
+  /** Open the ROI / measurement inspector by default in the annotation workspace. */
+  showMeasurementPanel: boolean;
+  /** Initial synchronization mode for the MRI comparison workspace. */
+  comparisonSyncDefault: ComparisonSyncDefault;
+  // --- accessibility (v2.1) ---
+  /** Enable roving-focus keyboard navigation + visible skip link + shortcuts. */
+  enhancedKeyboardNav: boolean;
+  // --- workspace memory (v2.0.2) ---
+  /** Remember the last opened study/animal and offer to resume it. */
+  rememberLastWorkspace: boolean;
+  // --- export content preferences (v2.1) ---
+  /** Include annotation summaries in exports. */
+  exportIncludeAnnotations: boolean;
+  /** Include derived measurements in exports. */
+  exportIncludeMeasurements: boolean;
+  /** Include longitudinal links in exports. */
+  exportIncludeLinks: boolean;
+  /** Include the image/file-reference appendix in exports. */
+  exportIncludeAppendix: boolean;
+  // --- report layout (v2.1) ---
+  /** Embed images in reports (inline in DOCX; attached alongside a PDF). */
+  exportEmbedImages: boolean;
+  /** Printable page size for PDF/DOCX reports. */
+  exportPageSize: PageSize;
+  /** Add a dedicated cover page (title + institution) to reports. */
+  exportCoverPage: boolean;
+  /** Institution / laboratory name shown on the cover page and header. */
+  exportInstitution: string;
+  /** Add a header/footer band with page numbering to reports. */
+  exportHeaderFooter: boolean;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -40,6 +111,24 @@ export const DEFAULT_SETTINGS: AppSettings = {
   sidebarDefaultCollapsed: false,
   confirmBeforeDelete: true,
   defaultExportFormat: "pdf",
+  annotationColor: "#f59e0b",
+  annotationSize: "medium",
+  measurementPrecision: 3,
+  wheelSensitivity: "medium",
+  showCoordinates: false,
+  showMeasurementPanel: true,
+  comparisonSyncDefault: "none",
+  enhancedKeyboardNav: false,
+  rememberLastWorkspace: true,
+  exportIncludeAnnotations: true,
+  exportIncludeMeasurements: true,
+  exportIncludeLinks: true,
+  exportIncludeAppendix: true,
+  exportEmbedImages: false,
+  exportPageSize: "letter",
+  exportCoverPage: false,
+  exportInstitution: "",
+  exportHeaderFooter: false,
 };
 
 export const SETTINGS_STORAGE_KEY = "als.settings";

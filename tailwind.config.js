@@ -61,6 +61,7 @@ export default {
       },
       fontFamily: {
         sans: [
+          "Inter Variable",
           "Inter",
           "ui-sans-serif",
           "system-ui",
@@ -68,6 +69,14 @@ export default {
           "Segoe UI",
           "Roboto",
           "sans-serif",
+        ],
+        mono: [
+          "JetBrains Mono Variable",
+          "ui-monospace",
+          "SFMono-Regular",
+          "Menlo",
+          "Consolas",
+          "monospace",
         ],
       },
       keyframes: {

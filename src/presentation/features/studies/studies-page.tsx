@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { AlertTriangle, FlaskConical, Plus } from "lucide-react";
 
 import { PageHeader } from "@/presentation/components/page-header";
+import { HELP } from "@/presentation/features/help/help-sections";
 import { EmptyState } from "@/presentation/components/empty-state";
 import { LoadingState } from "@/presentation/components/loading-state";
 import { Button } from "@/presentation/components/ui/button";
@@ -29,6 +30,7 @@ export function StudiesPage() {
     <div className="space-y-8">
       <PageHeader
         title="Studies"
+        help={HELP.studies}
         description="Each study holds a cohort of animals, its protocol, and the observations you record over time."
         actions={
           state.status === "ready" && state.studies.length > 0

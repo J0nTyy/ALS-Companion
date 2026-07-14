@@ -10,8 +10,13 @@ stored locally on your computer.
 > estimates prognosis, or makes clinical recommendations. Everything it shows is
 > data you entered or files you attached.
 
-**Version:** this guide describes **v2.0.1**. The current version is always shown at
+**Version:** this guide describes **v2.4**. The current version is always shown at
 the bottom of the sidebar and under **Settings → About**.
+
+> **Reading this in the app.** This guide is built in: click **User Guide** at the
+> bottom of the left sidebar (just above the version number). It is fully searchable
+> and has a table of contents. Throughout the app, a small information icon (ⓘ) next
+> to a feature's title jumps straight to the matching section here.
 
 ---
 
@@ -58,14 +63,14 @@ The window has three parts:
 
 | Area | What it does |
 | --- | --- |
-| **Left sidebar** | Moves you between the main sections: **Dashboard, Studies, MRI Compare, Publish, Settings**. The current version shows at the bottom. |
-| **Top bar** | The **collapse button** (▮ icon) to hide/show the sidebar, the **global search box**, and the **light/dark toggle**. |
+| **Left sidebar** | Moves you between the main sections: **Dashboard, Studies, MRI Compare, Analytics, Publish, Settings**. The **User Guide** link and the current version show at the bottom. |
+| **Top bar** | The **global search box** and the **light/dark toggle**. |
 | **Main area** | Whatever you're working on. It widens automatically to use the space. |
 
 ### Collapsing the sidebar
-Click the **panel button** at the far left of the top bar to shrink the sidebar to
-a slim icon strip (hover an icon to see its name). Click again to expand it. The app
-remembers your choice next time you open it.
+Click the **panel button** in the sidebar header (to the right of the logo/title) to
+shrink the sidebar to a slim icon strip (hover an icon to see its name). Click again
+to expand it. The app remembers your choice next time you open it.
 
 ### Light or dark theme
 Use the **sun/moon toggle** in the top bar for a quick switch, or go to
@@ -131,6 +136,17 @@ yet.
 
 ---
 
+### Analytics (cohort statistics)
+Open **Analytics** in the sidebar for a read-only statistical view of your data —
+nothing is saved, predicted, or AI-generated. Choose **All studies** for a cohort
+overview (study counts, active vs archived, treatment-group and mutation
+distributions) or a single study for detailed statistics (timeline completion,
+observations, MRI/histology/biomarker/annotation counts, and a publication-readiness
+checklist). For a single study you can filter by treatment group, mutation, and
+observation date range. Charts are simple bars; tables show exact counts.
+
+---
+
 ## 4. Studies
 
 A **study** is a research project (a mutation, a cohort, a question). Open
@@ -154,8 +170,13 @@ A **study** is a research project (a mutation, a cohort, a question). Open
 | **Archived** | Hidden from the active list and read‑only (set by archiving). |
 
 ### Open, edit, and view
-- Click any study to open it. Inside you'll find its **details**, its **protocol**,
-  and its **animals**.
+- Click any study to open it. The page has a **summary rail** on the right (status,
+  strain, live counts of animals and protocol steps, quick actions, and "Jump to"
+  links) and the **Protocol** and **Animals** sections on the left.
+- Each section has a **▾ collapse toggle** in its header (they start expanded, and
+  the app remembers your choice), and shows a **count badge** — so large studies stay
+  easy to scan without endless scrolling. The animal page works the same way
+  (summary rail + collapsible **Observations** and **Timeline**).
 - **Edit study** changes the name, strain, status, or description.
 
 ### Archive a study (safe, reversible)
@@ -376,10 +397,13 @@ For PNG and JPEG images you get a viewer with these controls:
 
 | Control | Action |
 | --- | --- |
-| **Zoom in / Zoom out** | Buttons, or scroll the mouse wheel over the image. |
+| **Zoom in / Zoom out** | Buttons, or scroll the mouse wheel over the image (up to 2000% for fine detail). |
 | **Fit to window** | Scales the image to fit the frame. |
 | **Reset zoom** | Returns to 100% / fit. |
 | **Pan** | When zoomed in, click and drag to move around. |
+
+**Keyboard:** click the image once to focus it, then use **`+` / `−`** to zoom, the
+**arrow keys** to pan, **`0`** to reset, and **`F`** to fit.
 
 The percentage next to the buttons shows the current zoom. Zooming and panning only
 change how you *view* the image — they never alter the file.
@@ -560,12 +584,18 @@ Below the preview, use **Export** to save the package to disk:
 
 The report includes the study, protocol, animals, timeline, observations, MRI
 sessions, research assets, **annotation summaries, measurements, and longitudinal
-links**, plus **image references** (images are listed by name — they aren't embedded
-in this version). Everything comes from the package you assembled; nothing is
-fabricated.
+links**, plus the **image references** appendix. Everything comes from the package
+you assembled; nothing is fabricated.
+
+**Report layout & images** are controlled from **Settings → Reports & export**:
+- With **Embed images in reports** on, both the **PDF** and **Word (.docx)** reports
+  embed each study image **inline** in the document.
+- **Page size** (US Letter / A4), an optional **cover page** with your
+  **institution / laboratory** name, and a **header/footer with page numbering**
+  apply to both PDF and Word reports.
 
 > Not yet included: automatic paper writing, journal templates, AI summaries,
-> embedded images, statistics, and cloud upload.
+> statistics, and cloud upload.
 
 ---
 
@@ -585,32 +615,65 @@ Preferences are saved on your computer and apply everywhere in the app.
 - **Confirm before deleting** — when off, small deletes happen without the dialog;
   deleting a whole study **always** asks you to type its name (safety isn't removed).
 - **Default export format** — which format the publication workspace pre‑selects.
+- **Remember last opened study & animal** — the dashboard offers a “Continue where
+  you left off” card so you can jump back in.
+- **Default MRI comparison sync** — whether the comparison workspace starts with
+  zoom/pan synchronized (None, Zoom, Pan, or Both).
+
+**Viewer & annotations**
+- **Annotation color** and **size** — the color and thickness of points/rectangles
+  you draw on images.
+- **Measurement precision** — decimal places shown in the ROI/measurement panel.
+- **Mouse‑wheel zoom sensitivity** — how fast the wheel zooms images.
+- **Always show image coordinates** — keep the live cursor read‑out visible in the
+  annotation viewer (not just full screen).
+- **Always show the measurement panel** — keep the ROI/measurement panel open even
+  when nothing is selected.
 
 **Accessibility**
 - **High contrast** — stronger borders and secondary text for legibility.
 - **Reduce motion** — minimizes animations and transitions.
+- **Enhanced keyboard navigation** — shows a “Skip to main content” link (press Tab
+  from the top of a page) and strengthens the focus outline on every control, so
+  keyboard-only navigation is easy to follow.
 
-**Data & sample dataset** — install a realistic, fully‑removable demonstration
-dataset (see below). **About** shows the version, the database schema version, the
-list of applied migrations, and the reminder that this software supports research
-productivity and is **not** a diagnostic tool. You can **reset** all preferences
-here. Options marked **“Planned”** preview settings that arrive with future features.
+**Reports & export** — choose what exports include and how reports are laid out:
+- **Include** annotation summaries, derived measurements, longitudinal links, and
+  the image/file appendix.
+- **Embed images in reports** — embeds each study image inline in both the PDF and
+  the Word (.docx) report.
+- **Page size** — US Letter or A4 for both PDF and Word reports.
+- **Add a cover page** — starts the report with a dedicated title page.
+- **Institution / laboratory** — shown on the cover page and in the running footer.
+- **Header / footer with page numbering** — adds a running footer (“Page X of Y”)
+  to every page.
+
+Changes here take effect immediately across the app.
+
+**Data** — your research data lives in a local SQLite database on this computer.
+**About** shows the version, the database schema version, the list of applied
+migrations, and the reminder that this software supports research productivity and
+is **not** a diagnostic tool. You can **reset** all preferences here. Options marked
+**“Planned”** preview settings that arrive with future features.
 
 ### Sample dataset (for learning & demos)
-A labelled **SAMPLE** dataset lets you explore every feature with realistic,
-animal‑only data (studies, animals, timelines, observations, MRI & histology
-sessions, biomarker panels, annotations, and links). Because the database is
-single‑writer, install it with the **app closed**, from a terminal in the project
-folder:
+A realistic, **animal‑only** demonstration dataset lets you explore every feature
+with believable data — six studies (SOD1‑G93A progression, an exercise trial, a
+biomarker‑validation study, a Tofersen/SOD1 antisense study, a C9orf72 natural‑
+history cohort, and an archived TDP‑43 pilot), ~29 animals, timelines, observations,
+MRI & histology sessions with images, biomarker panels, annotations, and links.
+
+It is seeded from the command line (run with the app **closed**, since SQLite is
+single‑writer):
 
 ```
-python scripts/make-sample-media.py     # fetch/generate sample media (once)
-python scripts/seed-sample-data.py       # install the sample dataset
-python scripts/seed-sample-data.py --clear   # remove it (only the SAMPLE data)
+python scripts/make-sample-media.py          # fetch/generate sample media (once)
+python scripts/seed-sample-data.py            # add the sample dataset
+python scripts/seed-sample-data.py --clear    # remove ONLY the sample data
 ```
 
-Everything it creates is prefixed **“SAMPLE —”**; removing it never touches your own
-studies. Images are animal/laboratory imagery only.
+The seeder records exactly what it created, so **--clear** removes only the sample
+studies and everything under them — your own studies are never touched.
 
 ---
 

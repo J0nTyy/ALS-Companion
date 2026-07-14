@@ -1,6 +1,11 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 
+// Self-hosted variable fonts (bundled locally — no network / CDN, CSP-safe): Inter
+// for the UI (excellent on-screen readability) and JetBrains Mono for code/figures.
+import "@fontsource-variable/inter";
+import "@fontsource-variable/jetbrains-mono";
+
 import { App } from "./App";
 import { studiesService } from "@/composition/studies";
 import { animalsService } from "@/composition/animals";
@@ -20,6 +25,7 @@ import { deletionService } from "@/composition/deletion";
 import { annotationsService } from "@/composition/annotations";
 import { annotationLinkService } from "@/composition/annotation-links";
 import { exportService } from "@/composition/export";
+import { analyticsService } from "@/composition/analytics";
 import "./index.css";
 
 const rootElement = document.getElementById("root");
@@ -48,6 +54,7 @@ ReactDOM.createRoot(rootElement).render(
       annotationService={annotationsService}
       annotationLinkService={annotationLinkService}
       exportService={exportService}
+      analyticsService={analyticsService}
     />
   </React.StrictMode>,
 );

@@ -1,3 +1,4 @@
+import { lazy } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import type { StudiesService } from "@/application/services/studies-service";
@@ -18,22 +19,19 @@ import type { DeletionService } from "@/application/services/deletion-service";
 import type { AnnotationService } from "@/application/services/annotation-service";
 import type { AnnotationLinkService } from "@/application/services/annotation-link-service";
 import type { ExportService } from "@/application/services/export-service";
+import type { AnalyticsService } from "@/application/services/analytics-service";
 import { ThemeProvider } from "@/shared/hooks/use-theme";
 import { SettingsProvider } from "@/shared/hooks/use-settings";
 import { AppShell } from "@/presentation/layouts/app-shell";
 import { DashboardServiceProvider } from "@/presentation/features/dashboard/dashboard-service-context";
-import { DashboardPage } from "@/presentation/features/dashboard/dashboard-page";
 import { PublicationServiceProvider } from "@/presentation/features/publication/publication-service-context";
 import { ExportServiceProvider } from "@/presentation/features/publication/export-service-context";
-import { PublicationPage } from "@/presentation/features/publication/publication-page";
 import { DeletionServiceProvider } from "@/presentation/features/deletion/deletion-service-context";
 import { AnnotationServiceProvider } from "@/presentation/features/annotations/annotation-service-context";
 import { AnnotationLinkServiceProvider } from "@/presentation/features/annotation-links/annotation-link-service-context";
 import { ContextMenuProvider } from "@/presentation/features/context-menu/context-menu-context";
-import { StudiesPage } from "@/presentation/features/studies/studies-page";
-import { StudyCreatePage } from "@/presentation/features/studies/study-create-page";
-import { StudyDetailPage } from "@/presentation/features/studies/study-detail-page";
-import { AnimalDetailPage } from "@/presentation/features/animals/animal-detail-page";
+import { ToastProvider } from "@/presentation/features/toast/toast-context";
+import { AnalyticsServiceProvider } from "@/presentation/features/analytics/analytics-service-context";
 import { StudiesServiceProvider } from "@/presentation/features/studies/studies-service-context";
 import { AnimalsServiceProvider } from "@/presentation/features/animals/animals-service-context";
 import { ObservationsServiceProvider } from "@/presentation/features/observations/observations-service-context";
@@ -44,12 +42,74 @@ import { HistologySessionServiceProvider } from "@/presentation/features/histolo
 import { BiomarkerServiceProvider } from "@/presentation/features/biomarkers/biomarker-service-context";
 import { ResearchAssetServiceProvider } from "@/presentation/features/assets/research-asset-service-context";
 import { SearchServiceProvider } from "@/presentation/features/search/search-service-context";
-import { SearchPage } from "@/presentation/features/search/search-page";
 import { StorageServiceProvider } from "@/presentation/features/storage/storage-service-context";
 import { MriComparisonServiceProvider } from "@/presentation/features/mri-comparison/mri-comparison-service-context";
-import { MriComparisonPage } from "@/presentation/features/mri-comparison/mri-comparison-page";
-import { SettingsPage } from "@/presentation/features/settings/settings-page";
-import { NotFoundPage } from "@/presentation/features/not-found/not-found-page";
+
+/*
+ * Route pages are lazy-loaded (React.lazy) so each screen ships as its own chunk
+ * behind the AppShell's Suspense boundary — the initial bundle only pays for the
+ * shell + providers, not every heavy workspace (comparison, publication, viewer).
+ */
+const DashboardPage = lazy(() =>
+  import("@/presentation/features/dashboard/dashboard-page").then((m) => ({
+    default: m.DashboardPage,
+  })),
+);
+const StudiesPage = lazy(() =>
+  import("@/presentation/features/studies/studies-page").then((m) => ({
+    default: m.StudiesPage,
+  })),
+);
+const StudyCreatePage = lazy(() =>
+  import("@/presentation/features/studies/study-create-page").then((m) => ({
+    default: m.StudyCreatePage,
+  })),
+);
+const StudyDetailPage = lazy(() =>
+  import("@/presentation/features/studies/study-detail-page").then((m) => ({
+    default: m.StudyDetailPage,
+  })),
+);
+const AnimalDetailPage = lazy(() =>
+  import("@/presentation/features/animals/animal-detail-page").then((m) => ({
+    default: m.AnimalDetailPage,
+  })),
+);
+const SearchPage = lazy(() =>
+  import("@/presentation/features/search/search-page").then((m) => ({
+    default: m.SearchPage,
+  })),
+);
+const MriComparisonPage = lazy(() =>
+  import("@/presentation/features/mri-comparison/mri-comparison-page").then(
+    (m) => ({ default: m.MriComparisonPage }),
+  ),
+);
+const PublicationPage = lazy(() =>
+  import("@/presentation/features/publication/publication-page").then((m) => ({
+    default: m.PublicationPage,
+  })),
+);
+const AnalyticsPage = lazy(() =>
+  import("@/presentation/features/analytics/analytics-page").then((m) => ({
+    default: m.AnalyticsPage,
+  })),
+);
+const SettingsPage = lazy(() =>
+  import("@/presentation/features/settings/settings-page").then((m) => ({
+    default: m.SettingsPage,
+  })),
+);
+const HelpPage = lazy(() =>
+  import("@/presentation/features/help/help-page").then((m) => ({
+    default: m.HelpPage,
+  })),
+);
+const NotFoundPage = lazy(() =>
+  import("@/presentation/features/not-found/not-found-page").then((m) => ({
+    default: m.NotFoundPage,
+  })),
+);
 
 /**
  * Application root. Providers wrap the router, which nests every screen inside
@@ -75,6 +135,7 @@ export function App({
   annotationService,
   annotationLinkService,
   exportService,
+  analyticsService,
 }: {
   studiesService: StudiesService;
   animalsService: AnimalsService;
@@ -94,10 +155,13 @@ export function App({
   annotationService: AnnotationService;
   annotationLinkService: AnnotationLinkService;
   exportService: ExportService;
+  analyticsService: AnalyticsService;
 }) {
   return (
     <ThemeProvider>
       <SettingsProvider>
+      <ToastProvider>
+      <AnalyticsServiceProvider service={analyticsService}>
       <ContextMenuProvider>
       <StudiesServiceProvider service={studiesService}>
         <AnimalsServiceProvider service={animalsService}>
@@ -130,8 +194,10 @@ export function App({
                       />
                       <Route path="search" element={<SearchPage />} />
                       <Route path="compare" element={<MriComparisonPage />} />
+                      <Route path="analytics" element={<AnalyticsPage />} />
                       <Route path="publish" element={<PublicationPage />} />
                       <Route path="settings" element={<SettingsPage />} />
+                      <Route path="help" element={<HelpPage />} />
                       <Route path="404" element={<NotFoundPage />} />
                       <Route
                         path="*"
@@ -159,6 +225,8 @@ export function App({
         </AnimalsServiceProvider>
       </StudiesServiceProvider>
       </ContextMenuProvider>
+      </AnalyticsServiceProvider>
+      </ToastProvider>
       </SettingsProvider>
     </ThemeProvider>
   );

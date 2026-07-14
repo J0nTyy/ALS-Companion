@@ -11,6 +11,8 @@ import type { WorkspaceStudyContents } from "@/application/use-cases/publication
 import { Button } from "@/presentation/components/ui/button";
 import { Label } from "@/presentation/components/ui/label";
 import { Select } from "@/presentation/components/ui/select";
+import { HelpHint } from "@/presentation/features/help/help-hint";
+import { HELP } from "@/presentation/features/help/help-sections";
 import { formatDateOnly } from "@/shared/lib/format";
 import { usePublicationWorkspace } from "./use-publication-workspace";
 import {
@@ -31,8 +33,9 @@ export function PublicationPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-foreground">
+        <h1 className="flex items-center gap-2 text-2xl font-semibold text-foreground">
           Publication workspace
+          <HelpHint section={HELP.publication} label="publication workspace" className="h-6 w-6" />
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Assemble a research package from an existing study. Choose what to

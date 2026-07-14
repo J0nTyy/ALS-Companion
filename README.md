@@ -59,9 +59,13 @@ Timeline → MRI sessions → Images → Annotations → Longitudinal links → 
   no third-party document libraries.
 
 **Experience**
+- **Two-column detail pages** (study & animal): a wide main column plus a sticky
+  summary rail (key facts, live counts, quick actions, and "jump to" links), with
+  **collapsible sections** and count badges so large datasets stay scannable.
 - Desktop-style **right-click context menus** throughout (the browser menu is
   suppressed everywhere except editable text fields, so copy/paste still works).
-- Light / dark / system themes, a collapsible sidebar, and keyboard shortcuts.
+- Light / dark / system themes, a collapsible sidebar, and keyboard shortcuts
+  (including in the image viewer: `+`/`−` zoom, arrows pan, `0` reset, `F` fit).
 
 ---
 
@@ -82,8 +86,12 @@ Timeline → MRI sessions → Images → Annotations → Longitudinal links → 
 Tauri v2 (Rust backend) · React 18 · TypeScript (strict) · Vite 6 · Tailwind CSS ·
 shadcn/ui · SQLite (via `@tauri-apps/plugin-sql`) · Vitest.
 
-The PDF and DOCX exporters are **dependency-free** (a small hand-written PDF writer
-and an OOXML `.docx` packager), keeping the bundle lean and the output deterministic.
+Key libraries: `pdf-lib` (PDF reports, with **embedded images**) and `docx`
+(editable Word reports) — code-split so they load only when you export;
+`react-markdown` + `remark-gfm` (the in-app User Guide); `recharts` (analytics
+charts); `papaparse` (CSV); `lucide-react` (icons); and self-hosted **Inter** /
+**JetBrains Mono** variable fonts (`@fontsource-variable/*`) for on-screen
+readability — all bundled locally, so nothing is fetched from a CDN at runtime.
 
 ## Getting started
 

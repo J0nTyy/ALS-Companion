@@ -11,8 +11,11 @@ import {
 import { Button } from "@/presentation/components/ui/button";
 import { Select } from "@/presentation/components/ui/select";
 import { Label } from "@/presentation/components/ui/label";
+import { HelpHint } from "@/presentation/features/help/help-hint";
+import { HELP } from "@/presentation/features/help/help-sections";
 import { toUserMessage } from "@/presentation/lib/error-message";
 import { useSettings } from "@/shared/hooks/use-settings";
+import { useToast } from "@/presentation/features/toast/toast-context";
 import { useExportService } from "../export-service-context";
 
 type ExportMessage = { tone: "success" | "error" | "info"; text: string };
@@ -31,6 +34,7 @@ export function ExportPanel({
 }) {
   const exportService = useExportService();
   const { settings } = useSettings();
+  const toast = useToast();
   // Seed from the researcher's preferred default; they can still change it here.
   const [format, setFormat] = useState<ExportFormat>(
     () => settings.defaultExportFormat,
@@ -38,26 +42,44 @@ export function ExportPanel({
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<ExportMessage | null>(null);
 
+  // Apply the researcher's export content preferences by deriving a filtered
+  // package (the engine stays unchanged — it just receives fewer items).
+  function applyExportPreferences(source: PublicationPackage): PublicationPackage {
+    return {
+      ...source,
+      ...(settings.exportIncludeAnnotations ? {} : { annotations: [] }),
+      ...(settings.exportIncludeMeasurements ? {} : { measurements: [] }),
+      ...(settings.exportIncludeLinks ? {} : { annotationLinks: [] }),
+      ...(settings.exportIncludeAppendix ? {} : { storedFiles: [] }),
+    };
+  }
+
   async function run() {
     if (!pkg || busy) return;
     setBusy(true);
     setMessage(null);
     try {
-      const result = await exportService.export(pkg, format);
+      const result = await exportService.export(applyExportPreferences(pkg), format, {
+        attachImages: settings.exportEmbedImages,
+        report: {
+          pageSize: settings.exportPageSize,
+          coverPage: settings.exportCoverPage,
+          institution: settings.exportInstitution.trim(),
+          headerFooter: settings.exportHeaderFooter,
+        },
+      });
       if (result.status === "cancelled") {
         setMessage({ tone: "info", text: "Export cancelled." });
       } else {
         const count = result.fileNames.length;
-        setMessage({
-          tone: "success",
-          text: `Exported ${count} file${count === 1 ? "" : "s"} to ${result.directory}.`,
-        });
+        const text = `Exported ${count} file${count === 1 ? "" : "s"} to ${result.directory}.`;
+        setMessage({ tone: "success", text });
+        toast.success(text);
       }
     } catch (error) {
-      setMessage({
-        tone: "error",
-        text: toUserMessage(error, "The export failed. Please try again."),
-      });
+      const text = toUserMessage(error, "The export failed. Please try again.");
+      setMessage({ tone: "error", text });
+      toast.error(text);
     } finally {
       setBusy(false);
     }
@@ -75,6 +97,7 @@ export function ExportPanel({
       <div className="flex items-center gap-2 text-sm font-medium text-foreground">
         <Download className="h-4 w-4 text-primary" />
         Export
+        <HelpHint section={HELP.publication} label="exporting" className="ml-auto" />
       </div>
 
       <div className="space-y-1.5">

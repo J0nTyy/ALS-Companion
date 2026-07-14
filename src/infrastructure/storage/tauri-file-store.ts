@@ -29,6 +29,12 @@ export class TauriFileStore implements FileStore {
     });
   }
 
+  async readManagedBytes(relativePath: string): Promise<Uint8Array> {
+    if (!isTauri()) throw new DesktopRequiredError();
+    const bytes = await invoke<number[]>("read_managed_file", { relativePath });
+    return Uint8Array.from(bytes);
+  }
+
   async resolveDisplayUrl(relativePath: string): Promise<string> {
     if (!isTauri()) throw new DesktopRequiredError();
     const base = await appLocalDataDir();

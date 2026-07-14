@@ -36,7 +36,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 SAMPLE = ROOT / "sample-data"
 IDENTIFIER = "com.alsresearch.companion"
+# Legacy marker (older builds prefixed sample study names). Kept ONLY so --clear can
+# still find and remove data seeded by an older version. New sample studies use
+# believable, unprefixed names and are tracked by id in `seeded-studies.json`.
 STUDY_PREFIX = "SAMPLE — "
+SEEDED_IDS = SAMPLE / "seeded-studies.json"
 
 NOW = datetime.now(timezone.utc)
 TODAY = date.today()
@@ -76,13 +80,32 @@ def _in(ids):
     return ",".join("?" * len(ids))
 
 
+def _seeded_study_ids(cur) -> list[str]:
+    """The sample study ids to remove: those recorded in `seeded-studies.json`
+    (current builds) plus any legacy `SAMPLE — ` prefixed studies (older builds)."""
+    ids: list[str] = []
+    if SEEDED_IDS.exists():
+        try:
+            ids = list(json.loads(SEEDED_IDS.read_text(encoding="utf-8")).get("study_ids", []))
+        except Exception:
+            ids = []
+    # Keep only ids that still exist, then add any legacy prefixed studies.
+    existing = set(_ids(cur, "SELECT id FROM studies", ()))
+    ids = [i for i in ids if i in existing]
+    legacy = _ids(cur, "SELECT id FROM studies WHERE name LIKE ?", (STUDY_PREFIX + "%",))
+    for i in legacy:
+        if i not in ids:
+            ids.append(i)
+    return ids
+
+
 def clear_samples(con: sqlite3.Connection, images_dir: Path) -> dict:
-    """Remove ONLY the SAMPLE studies and every descendant, across all v2.0 tables."""
+    """Remove ONLY the sample studies and every descendant, across all v2.0 tables."""
     cur = con.cursor()
     removed = {k: 0 for k in ("studies", "stored_files", "annotations",
                               "annotation_links", "biomarker_samples",
                               "biomarker_results", "images_unlinked")}
-    study_ids = _ids(cur, "SELECT id FROM studies WHERE name LIKE ?", (STUDY_PREFIX + "%",))
+    study_ids = _seeded_study_ids(cur)
     if not study_ids:
         return removed
 
@@ -154,6 +177,11 @@ def clear_samples(con: sqlite3.Connection, images_dir: Path) -> dict:
         cur.execute(f"DELETE FROM animals WHERE id IN ({_in(animal_ids)})", animal_ids)
     removed["studies"] = cur.execute(f"DELETE FROM studies WHERE id IN ({_in(study_ids)})", study_ids).rowcount
     con.commit()
+    # The seeded-ids record is now stale — drop it so a later run starts clean.
+    try:
+        SEEDED_IDS.unlink(missing_ok=True)
+    except Exception:
+        pass
     return removed
 
 
@@ -163,7 +191,13 @@ class Seeder:
         self.con = con
         self.cur = con.cursor()
         self.images_dir = images_dir
-        self.images = {i["file"]: i for i in manifest.get("images", [])}
+        # A combined media map (images + documents), each tagged with its source folder.
+        self.media = {}
+        for i in manifest.get("images", []):
+            self.media[i["file"]] = {**i, "folder": "images"}
+        for dd in manifest.get("docs", []):
+            self.media[dd["file"]] = {**dd, "folder": "docs"}
+        self.study_ids: list[str] = []
         self.counts = {k: 0 for k in
                        ("studies", "animals", "observations", "protocols", "steps",
                         "events", "mri_sessions", "histology_sessions", "assets",
@@ -175,7 +209,8 @@ class Seeder:
         self.cur.execute(
             "INSERT INTO studies (id,name,description,strain,status,created_at,updated_at)"
             " VALUES (?,?,?,?,?,?,?)",
-            (sid, STUDY_PREFIX + name, description, strain, status, t, t))
+            (sid, name, description, strain, status, t, t))
+        self.study_ids.append(sid)
         self.counts["studies"] += 1
         return sid
 
@@ -241,7 +276,8 @@ class Seeder:
     def asset(self, owner_type, owner_id, asset_type, title, status="planned",
               description=None, image_file=None):
         rid, t = uid(), touch()
-        if image_file and image_file in self.images and (SAMPLE / "images" / image_file).exists():
+        meta = self.media.get(image_file) if image_file else None
+        if meta and (SAMPLE / meta["folder"] / image_file).exists():
             status = "attached"
         self.cur.execute(
             "INSERT INTO research_assets (id,owner_type,owner_id,asset_type,title,description,"
@@ -254,12 +290,12 @@ class Seeder:
         return rid, file_id
 
     def _attach(self, asset_id, image_file):
-        meta = self.images[image_file]
+        meta = self.media[image_file]
         ext = Path(image_file).suffix.lstrip(".").lower()
         fid = uid()
         rel = f"images/{fid}.{ext}"
         self.images_dir.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(SAMPLE / "images" / image_file, self.images_dir / f"{fid}.{ext}")
+        shutil.copyfile(SAMPLE / meta["folder"] / image_file, self.images_dir / f"{fid}.{ext}")
         self.cur.execute(
             "INSERT INTO stored_files (id,research_asset_id,storage_type,relative_path,"
             "original_name,mime_type,checksum,created_at) VALUES (?,?,'local_managed',?,?,?,?,?)",
@@ -317,11 +353,11 @@ def rect(x, y, w, h):
 def build(s: Seeder) -> None:
     # ============================================================= Study 1 (main)
     s1 = s.study(
-        "ALS SOD1-G93A Progression Study", "SOD1-G93A", "active",
+        "SOD1-G93A Longitudinal Progression Cohort", "SOD1-G93A", "active",
         "Longitudinal progression study of the SOD1-G93A model with weekly weight + "
         "hindlimb scoring, MRI at baseline/week4/week8/week12, endpoint histopathology, "
         "and serum/CSF biomarker panels.")
-    s.protocol(s1, STUDY_PREFIX + "SOD1-G93A protocol", [
+    s.protocol(s1, "SOD1-G93A survival protocol", [
         ("Confirm SOD1 genotype", "gene_confirmation", 0, "PCR genotyping"),
         ("Baseline behavioural assessment", "behavioral_assessment", 7, None),
         ("Baseline brain MRI", "mri", 14, "T2, brain"),
@@ -448,9 +484,35 @@ def build(s: Seeder) -> None:
     s.event(m105, "Baseline brain MRI", "mri", "planned", planned=d(5))
     s.event(m106, "Weekly behavioural assessment", "behavioral_assessment", "planned", planned=d(2))
 
+    # Two more fully-populated example animals (weights + multi-scale motor tests +
+    # MRI session with an attached image + a serum biomarker panel).
+    m107 = s.animal(s1, "M-107", "male", d(-147), "SOD1-G93A", "Riluzole")
+    m108 = s.animal(s1, "M-108", "female", d(-149), "Wild Type", "Control")
+    for i, w in enumerate([24.9, 24.5, 23.9, 23.1, 22.4, 21.8]):
+        s.observation(m107, d(-70 + i * 14), "body_weight", w,
+                      notes=("Baseline" if i == 0 else None))
+    for i, sc in enumerate([5, 5, 4, 3]):
+        s.observation(m107, d(-70 + i * 21), "motor_score", sc, scale="Hindlimb 0-5")
+    for i, g in enumerate([96, 88, 70, 55]):
+        s.observation(m107, d(-70 + i * 21), "motor_score", g, scale="Grip strength (g)")
+    for i, w in enumerate([25.4, 25.6, 25.5, 25.7]):
+        s.observation(m108, d(-70 + i * 21), "body_weight", w)
+        s.observation(m108, d(-70 + i * 21), "motor_score", 5, scale="Hindlimb 0-5")
+
+    e_mri_107 = s.event(m107, "Baseline brain MRI", "mri", "completed", completed=d(-70))
+    ses_107 = s.mri_session(e_mri_107, "Baseline brain MRI", "Brain", d(-70), "Dr. Chen", "T2-weighted")
+    _, f107 = s.asset("mri_session", ses_107, "mri_image", "Brain MRI — week 4 (T2)",
+                      image_file="mri-brain-week4.jpg")
+    s.annotation(f107, point(0.48, 0.5), "Cortex reference")
+    e_bio_107 = s.event(m107, "Biochemical analysis", "biochemical_analysis", "completed", completed=d(-14))
+    bs_107 = s.biomarker_sample(e_bio_107, "blood", d(-14), "Sam Ortiz", "Serum")
+    s.biomarker_result(bs_107, "Neurofilament Light (NfL)", "88", "pg/mL", "Simoa")
+    s.biomarker_result(bs_107, "IL-6", "9.7", "pg/mL", "ELISA")
+    s.event(m108, "Baseline behavioural assessment", "behavioral_assessment", "planned", planned=d(4))
+
     # ===================================================== Study 2 (exercise trial)
     s2 = s.study(
-        "Exercise Intervention Study", "SOD1-G93A", "active",
+        "Voluntary Wheel-Running Exercise Trial (SOD1-G93A)", "SOD1-G93A", "active",
         "Voluntary-wheel exercise vs sedentary in SOD1-G93A, tracking rotarod, grip "
         "strength, and serum NfL.")
     ex = []
@@ -471,7 +533,7 @@ def build(s: Seeder) -> None:
 
     # ================================================= Study 3 (biomarker validation)
     s3 = s.study(
-        "Biomarker Validation Study", "Mixed (SOD1-G93A, WT)", "active",
+        "Serum & CSF Biomarker Validation (SOD1-G93A vs Wild-Type)", "Mixed (SOD1-G93A, WT)", "active",
         "Cross-sectional validation of serum/CSF biomarkers against disease stage in "
         "SOD1-G93A vs wild-type controls.")
     for i in range(4):
@@ -487,9 +549,103 @@ def build(s: Seeder) -> None:
 
     # ===================================================== Study 4 (archived pilot)
     s4 = s.study(
-        "TDP-43 Pilot (archived)", "TDP-43 (Q331K)", "archived",
-        "Small archived pilot in a TDP-43 model — kept read-only.")
-    s.animal(s4, "T-401", "female", d(-90), "TDP-43", "Vehicle")
+        "TDP-43 (Q331K) Cytoplasmic Aggregation Pilot", "TDP-43 (Q331K)", "archived",
+        "Small archived pilot in a TDP-43 (Q331K) model — kept read-only for reference.")
+    t401 = s.animal(s4, "T-401", "female", d(-90), "TDP-43 (Q331K)", "Vehicle")
+    t402 = s.animal(s4, "T-402", "male", d(-92), "TDP-43 (Q331K)", "Vehicle")
+    for i, w in enumerate([23.8, 23.4, 22.9, 22.6]):
+        s.observation(t401, d(-56 + i * 14), "body_weight", w)
+    e_t401 = s.event(t401, "Endpoint histopathology", "histopathology", "completed", completed=d(-30))
+    h_t401 = s.histology_session(e_t401, "he", "Motor cortex", d(-30), "Sam Ortiz", magnification="20×")
+    s.asset("histology_session", h_t401, "histology_image", "Motor cortex — H&E",
+            image_file="histo-nissl-motorcortex.jpg")
+
+    # ============================================== Study 5 (Tofersen SOD1 ASO trial)
+    # Tofersen (Qalsody) is a real antisense oligonucleotide lowering SOD1; modelled
+    # here as intrathecal ASO vs vehicle in SOD1-G93A, tracked by serum/CSF NfL.
+    s5 = s.study(
+        "Tofersen (SOD1 Antisense Oligonucleotide) Efficacy Study", "SOD1-G93A", "active",
+        "Intrathecal antisense oligonucleotide (SOD1-lowering) vs vehicle in SOD1-G93A, "
+        "with monthly serum/CSF neurofilament, motor scoring, and follow-up MRI.")
+    s.protocol(s5, "ASO dosing & monitoring protocol", [
+        ("Confirm SOD1 genotype", "gene_confirmation", 0, "PCR genotyping"),
+        ("Baseline CSF neurofilament", "biochemical_analysis", 7, "Pre-dose CSF NfL"),
+        ("Intrathecal ASO / vehicle dose 1", "custom", 14, "Lumbar puncture"),
+        ("Monthly motor + weight assessment", "behavioral_assessment", 28, None),
+        ("Follow-up brain MRI", "mri", 56, "T2, brain"),
+        ("Terminal CSF/serum panel", "biochemical_analysis", 84, "NfL / GFAP / pNF-H"),
+    ])
+    aso_animals = []
+    for i in range(6):
+        grp = "Tofersen ASO" if i % 2 == 0 else "Vehicle (scrambled ASO)"
+        sex = "male" if i % 2 else "female"
+        a = s.animal(s5, f"A-5{i:02d}", sex, d(-140 + i), "SOD1-G93A", grp)
+        aso_animals.append((a, grp))
+        # ASO arm declines more slowly than vehicle.
+        drop = [0.0, -0.4, -0.9, -1.4, -1.9] if "Tofersen" in grp else [0.0, -0.9, -2.0, -3.1, -4.0]
+        base = 24.6
+        for w_i, dw in enumerate(drop):
+            s.observation(a, d(-70 + w_i * 14), "body_weight", round(base + dw, 1),
+                          notes=("Baseline" if w_i == 0 else None))
+        for w_i, sc in enumerate([5, 5, 4, 4] if "Tofersen" in grp else [5, 4, 3, 2]):
+            s.observation(a, d(-70 + w_i * 21), "motor_score", sc, scale="Hindlimb 0-5")
+    # Dose event + treatment-administration timeline + CSF panels showing NfL lowering.
+    aso_lead, aso_lead_grp = aso_animals[0]
+    e_dose = s.event(aso_lead, "Intrathecal ASO dose 1", "custom", "completed",
+                     completed=d(-56), notes="10 µg intrathecal, lumbar")
+    e_aso_pre = s.event(aso_lead, "Pre-dose CSF neurofilament", "biochemical_analysis", "completed",
+                        completed=d(-63))
+    bs_pre = s.biomarker_sample(e_aso_pre, "csf", d(-63), "Dr. Chen", "Pre-dose CSF")
+    s.biomarker_result(bs_pre, "Neurofilament Light (NfL)", "2380", "pg/mL", "Simoa", "Baseline")
+    e_aso_post = s.event(aso_lead, "Terminal CSF/serum panel", "biochemical_analysis", "completed",
+                         completed=d(-3))
+    bs_post = s.biomarker_sample(e_aso_post, "csf", d(-3), "Dr. Chen", "Post-treatment CSF")
+    s.biomarker_result(bs_post, "Neurofilament Light (NfL)", "1120", "pg/mL", "Simoa", "≈53% reduction under ASO")
+    s.biomarker_result(bs_post, "GFAP", "205", "pg/mL", "Simoa")
+    bs_post_serum = s.biomarker_sample(e_aso_post, "blood", d(-3), "Dr. Chen", "Serum")
+    s.biomarker_result(bs_post_serum, "Neurofilament Light (NfL)", "58", "pg/mL", "Simoa")
+    s.biomarker_result(bs_post_serum, "SOD1 protein", "0.34", "fold vs vehicle", "ELISA", "Target engagement")
+    e_aso_mri = s.event(aso_lead, "Follow-up brain MRI", "mri", "completed", completed=d(-14))
+    ses_aso = s.mri_session(e_aso_mri, "Follow-up brain MRI", "Brain", d(-14), "Dr. Chen", "T2-weighted, 9.4T")
+    _, f_aso = s.asset("mri_session", ses_aso, "mri_image", "Brain MRI — post-ASO (T2)",
+                       image_file="mri-brain-week8.png")
+    s.annotation(f_aso, rect(0.41, 0.33, 0.17, 0.15), "Ventricle ROI", "Stable vs baseline under ASO")
+    s.asset("mri_session", ses_aso, "other", "Serum NfL by group (SAMPLE)", image_file="graph-nfl.png")
+    # Vehicle arm: overdue endpoint (drives the "attention needed" surfaces).
+    s.event(aso_animals[1][0], "Endpoint histopathology", "histopathology", "planned",
+            planned=d(-5), notes="Overdue")
+
+    # ============================================ Study 6 (C9orf72 natural history)
+    # C9orf72 repeat expansion is the most common genetic cause of ALS/FTD.
+    s6 = s.study(
+        "C9orf72 Repeat-Expansion Natural History", "C9orf72 (BAC transgenic)", "active",
+        "Observational natural-history cohort of a C9orf72 repeat-expansion model — "
+        "baseline characterisation, behavioural tracking, and planned imaging/biomarker work.")
+    s.protocol(s6, "Natural-history observation protocol", [
+        ("Confirm C9orf72 repeat expansion", "gene_confirmation", 0, "Repeat-primed PCR"),
+        ("Baseline behavioural assessment", "behavioral_assessment", 7, None),
+        ("Baseline brain MRI", "mri", 14, None),
+        ("Quarterly behavioural assessment", "behavioral_assessment", 90, None),
+    ])
+    c9_animals = []
+    for i in range(5):
+        mut = "C9orf72 (BAC)" if i < 4 else "Wild Type"
+        grp = "Control" if mut == "Wild Type" else "Observational"
+        a = s.animal(s6, f"C-6{i:02d}", "female" if i % 2 else "male", d(-200 + i * 2), mut, grp)
+        c9_animals.append(a)
+        for w_i, w in enumerate([26.0, 25.7, 25.5, 25.2]):
+            s.observation(a, d(-84 + w_i * 21), "body_weight", round(w - (0.3 * i if mut != "Wild Type" else 0), 1))
+        s.observation(a, d(0), "motor_score", 5, scale="Hindlimb 0-5", notes="No deficit at baseline")
+    c9_lead = c9_animals[0]
+    s.event(c9_lead, "Confirm C9orf72 repeat expansion", "gene_confirmation", "completed",
+            completed=d(-180), notes="Expansion confirmed (repeat-primed PCR)")
+    e_c9_mri = s.event(c9_lead, "Baseline brain MRI", "mri", "completed", completed=d(-120))
+    ses_c9 = s.mri_session(e_c9_mri, "Baseline brain MRI", "Brain", d(-120), "Sam Ortiz", "T2-weighted")
+    _, f_c9 = s.asset("mri_session", ses_c9, "mri_image", "Brain MRI — baseline (T2)",
+                      image_file="mri-brain-week4.jpg")
+    s.annotation(f_c9, point(0.5, 0.48), "Cortex reference")
+    s.event(c9_lead, "Quarterly behavioural assessment", "behavioral_assessment", "planned", planned=d(7))
+    s.event(c9_animals[1], "Baseline brain MRI", "mri", "planned", planned=d(10))
 
 
 # ---------------------------------------------------------------------------- main
@@ -541,7 +697,15 @@ def main() -> None:
         con.commit()
         con.close()
 
-        print("\nSeeded SAMPLE data:")
+        # Record the seeded study ids so --clear can remove EXACTLY this data later
+        # (the study names are believable and unprefixed, so we track them by id).
+        SEEDED_IDS.parent.mkdir(parents=True, exist_ok=True)
+        SEEDED_IDS.write_text(
+            json.dumps({"study_ids": seeder.study_ids,
+                        "seeded_at": NOW.isoformat()}, indent=2),
+            encoding="utf-8")
+
+        print("\nSeeded sample data:")
         for k in seeder.counts:
             print(f"  {k:18}: {seeder.counts[k]}")
         print("\nDone. Open the app to explore the Dashboard, Studies, timelines, MRI + "
