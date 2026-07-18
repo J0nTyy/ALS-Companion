@@ -12,7 +12,7 @@ import { mapRowToStudy, type StudyRow } from "./study-row-mapper";
 import { SearchConditionBuilder, SEARCH_PER_TYPE_LIMIT } from "./search-sql";
 
 const COLUMNS =
-  "id, name, description, strain, status, created_at, updated_at";
+  "id, name, description, summary, summary_updated_at, strain, status, created_at, updated_at";
 
 const STUDY_NOT_FOUND = "That study could not be found.";
 
@@ -87,12 +87,14 @@ export class SqliteStudyRepository
     const db = await getDatabase();
     await db.execute(
       `INSERT INTO studies
-         (id, name, description, strain, status, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+         (id, name, description, summary, summary_updated_at, strain, status, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
       [
         study.id,
         study.name,
         study.description ?? null,
+        study.summary ?? null,
+        study.summaryUpdatedAt ?? null,
         study.strain,
         study.status,
         study.createdAt,
@@ -105,11 +107,14 @@ export class SqliteStudyRepository
     const db = await getDatabase();
     const result = await db.execute(
       `UPDATE studies
-         SET name = $1, description = $2, strain = $3, status = $4, updated_at = $5
-       WHERE id = $6`,
+         SET name = $1, description = $2, summary = $3, summary_updated_at = $4,
+             strain = $5, status = $6, updated_at = $7
+       WHERE id = $8`,
       [
         study.name,
         study.description ?? null,
+        study.summary ?? null,
+        study.summaryUpdatedAt ?? null,
         study.strain,
         study.status,
         study.updatedAt,

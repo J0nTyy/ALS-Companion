@@ -40,4 +40,21 @@ describe("buildReportModel", () => {
       buildReportModel(samplePackage()),
     );
   });
+
+  it("adds a Summary section (right after Study information) when the study has one", () => {
+    const base = samplePackage();
+    const pkg = { ...base, study: { ...base.study, summary: "A concise study summary." } };
+    const withSummary = buildReportModel(pkg);
+    expect(withSummary.sections[1]?.heading).toBe("Summary");
+    expect(withSummary.sections[1]?.blocks[0]).toEqual({
+      kind: "paragraph",
+      text: "A concise study summary.",
+    });
+  });
+
+  it("omits the Summary section when the study has no summary", () => {
+    expect(
+      buildReportModel(samplePackage()).sections.some((s) => s.heading === "Summary"),
+    ).toBe(false);
+  });
 });

@@ -26,6 +26,7 @@ import { annotationsService } from "@/composition/annotations";
 import { annotationLinkService } from "@/composition/annotation-links";
 import { exportService } from "@/composition/export";
 import { analyticsService } from "@/composition/analytics";
+import { agentService, aiCredentialStore } from "@/composition/assistant";
 import "./index.css";
 
 const rootElement = document.getElementById("root");
@@ -55,6 +56,8 @@ ReactDOM.createRoot(rootElement).render(
       annotationLinkService={annotationLinkService}
       exportService={exportService}
       analyticsService={analyticsService}
+      agentService={agentService}
+      aiCredentialStore={aiCredentialStore}
     />
   </React.StrictMode>,
 );

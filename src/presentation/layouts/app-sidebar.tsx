@@ -15,9 +15,12 @@ import { NAV_ITEMS } from "./navigation";
  */
 export function AppSidebar({
   collapsed = false,
+  width = 240,
   onToggle,
 }: {
   collapsed?: boolean;
+  /** Expanded width in px (resizable via the shell's drag handle). */
+  width?: number;
   onToggle: () => void;
 }) {
   const toggleButton = (
@@ -36,9 +39,10 @@ export function AppSidebar({
   return (
     <aside
       className={cn(
-        "flex h-full shrink-0 flex-col border-r border-border bg-card/50 transition-[width] duration-200 ease-in-out",
-        collapsed ? "w-16" : "w-60",
+        "flex h-full shrink-0 flex-col border-r border-border bg-card/50",
+        collapsed && "w-16",
       )}
+      style={collapsed ? undefined : { width }}
     >
       <div
         className={cn(

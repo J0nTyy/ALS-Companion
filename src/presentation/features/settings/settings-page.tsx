@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Monitor, Moon, Sun, Check } from "lucide-react";
 
 import { PageHeader } from "@/presentation/components/page-header";
@@ -35,6 +35,10 @@ import {
   EXPORT_FORMAT_META,
   isExportFormat,
 } from "@/application/export/export-types";
+import { isTauri } from "@/infrastructure/platform/environment";
+import { rawErrorMessage } from "@/presentation/lib/error-message";
+import { useAssistant } from "@/presentation/features/assistant/assistant-context";
+import type { AiProvider } from "@/application/ai/ai-types";
 
 const THEME_OPTIONS: { value: Theme; label: string; icon: typeof Sun }[] = [
   { value: "light", label: "Light", icon: Sun },
@@ -394,6 +398,9 @@ export function SettingsPage() {
         <FutureRow label="Backup & restore reminders" />
       </Section>
 
+      {/* -------------------------------------------------------- AI assistant */}
+      <AiAssistantSection />
+
       {/* ------------------------------------------------------------- Updates */}
       <UpdatesSection />
 
@@ -530,6 +537,295 @@ function FutureRow({ label }: { label: string }) {
       <p className="text-sm text-muted-foreground">{label}</p>
       <Badge variant="secondary">Planned</Badge>
     </div>
+  );
+}
+
+// Fallback options shown before the live model list loads. The "-latest" aliases
+// track Google's current models, so they age better than a pinned version.
+// Fallback options shown before the live model list loads (the "Load available
+// models" button fetches the real list per provider). The "-latest" Gemini aliases
+// track Google's current models; the Groq entries are current general models.
+const FALLBACK_MODELS: Record<AiProvider, string[]> = {
+  gemini: ["gemini-flash-latest", "gemini-flash-lite-latest", "gemini-pro-latest"],
+  groq: ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"],
+};
+
+const PROVIDER_META: Record<AiProvider, { label: string; keyHint: string }> = {
+  gemini: {
+    label: "Google Gemini",
+    keyHint:
+      "Create a free key at Google AI Studio (aistudio.google.com → Get API key), then paste it here.",
+  },
+  groq: {
+    label: "Groq",
+    keyHint:
+      "Create a free key at Groq (console.groq.com → API Keys) — higher free limits — then paste it here.",
+  },
+};
+
+type AiStatus =
+  | { kind: "idle" }
+  | { kind: "saving" }
+  | { kind: "saved" }
+  | { kind: "testing" }
+  | { kind: "ok" }
+  | { kind: "error"; message: string };
+
+function aiStatusLabel(status: AiStatus): string {
+  switch (status.kind) {
+    case "saving":
+      return "Saving…";
+    case "saved":
+      return "Key saved.";
+    case "testing":
+      return "Testing the connection…";
+    case "ok":
+      return "Connected — the assistant is ready.";
+    case "error":
+      return status.message;
+    default:
+      return "";
+  }
+}
+
+/** Enable + configure the optional Gemini-powered assistant (desktop only). */
+function AiAssistantSection() {
+  const { settings, update } = useSettings();
+  const { credentials, service } = useAssistant();
+  const desktop = isTauri();
+  const provider = settings.aiProvider;
+  const [hasKey, setHasKey] = useState<boolean | null>(null);
+  const [keyInput, setKeyInput] = useState("");
+  const [status, setStatus] = useState<AiStatus>({ kind: "idle" });
+  const [models, setModels] = useState<string[]>([]);
+  const [modelStatus, setModelStatus] = useState<"idle" | "loading" | "error">("idle");
+
+  const refreshKey = useCallback(() => {
+    void credentials
+      .hasKey(provider)
+      .then(setHasKey)
+      .catch(() => setHasKey(false));
+  }, [credentials, provider]);
+
+  useEffect(() => {
+    if (desktop) refreshKey();
+  }, [desktop, refreshKey]);
+
+  const loadModels = useCallback(() => {
+    setModelStatus("loading");
+    void credentials
+      .listModels(provider)
+      .then((list) => {
+        setModels(list);
+        setModelStatus("idle");
+      })
+      .catch(() => setModelStatus("error"));
+  }, [credentials, provider]);
+
+  // Auto-load the models the key supports once we know a key is present.
+  useEffect(() => {
+    if (hasKey) loadModels();
+  }, [hasKey, loadModels]);
+
+  // Switching provider resets the per-provider UI (key input, models, status).
+  useEffect(() => {
+    setKeyInput("");
+    setModels([]);
+    setModelStatus("idle");
+    setStatus({ kind: "idle" });
+  }, [provider]);
+
+  const saveKey = async () => {
+    if (keyInput.trim() === "") return;
+    setStatus({ kind: "saving" });
+    try {
+      await credentials.saveKey(provider, keyInput.trim());
+      setKeyInput("");
+      setStatus({ kind: "saved" });
+      refreshKey();
+    } catch (error) {
+      setStatus({ kind: "error", message: rawErrorMessage(error, "Could not save the key.") });
+    }
+  };
+
+  const removeKey = async () => {
+    try {
+      await credentials.clearKey(provider);
+      setStatus({ kind: "idle" });
+      refreshKey();
+    } catch (error) {
+      setStatus({ kind: "error", message: rawErrorMessage(error, "Could not remove the key.") });
+    }
+  };
+
+  const testConnection = async () => {
+    setStatus({ kind: "testing" });
+    try {
+      await service.ask({
+        question: "Reply with exactly the word: READY",
+        history: [],
+        provider,
+        model: settings.aiModel,
+      });
+      setStatus({ kind: "ok" });
+    } catch (error) {
+      setStatus({ kind: "error", message: rawErrorMessage(error, "The test failed.") });
+    }
+  };
+
+  // Prefer the models the key actually supports; fall back to the aliases. Always
+  // include the current selection so the dropdown can display it even if it's stale.
+  const modelBase = models.length > 0 ? models : FALLBACK_MODELS[provider];
+  const modelOptions = modelBase.includes(settings.aiModel)
+    ? modelBase
+    : [settings.aiModel, ...modelBase];
+
+  return (
+    <Section
+      title="AI assistant"
+      description="An optional in-app assistant that answers questions about your data and how to use the app, and can propose data entries and report summaries you confirm."
+    >
+      {!desktop ? (
+        <Row label="Availability">
+          <p className="text-sm text-muted-foreground">
+            Available in the installed desktop app.
+          </p>
+        </Row>
+      ) : (
+        <>
+          <Toggle
+            label="Enable the assistant"
+            description="Off by default. When on, a chat button appears in the top bar of every screen."
+            checked={settings.aiAssistantEnabled}
+            onChange={(v) => update({ aiAssistantEnabled: v })}
+          />
+
+          <Row label="Provider" description="Which AI service to use. Each has its own free key.">
+            <Select
+              aria-label="AI provider"
+              value={provider}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value === "gemini" || value === "groq") {
+                  update({
+                    aiProvider: value,
+                    aiModel: FALLBACK_MODELS[value][0] ?? settings.aiModel,
+                  });
+                }
+              }}
+              className="max-w-[16rem]"
+            >
+              <option value="gemini">Google Gemini</option>
+              <option value="groq">Groq (higher free limits)</option>
+            </Select>
+          </Row>
+
+          <Row
+            label={`${PROVIDER_META[provider].label} API key`}
+            description={
+              hasKey
+                ? "A key is saved on this computer (in Windows Credential Manager)."
+                : PROVIDER_META[provider].keyHint
+            }
+          >
+            <div className="flex flex-col items-stretch gap-2 sm:items-end">
+              <Input
+                type="password"
+                aria-label={`${PROVIDER_META[provider].label} API key`}
+                value={keyInput}
+                onChange={(e) => setKeyInput(e.target.value)}
+                placeholder={hasKey ? "•••••  (replace key)" : "Paste your key…"}
+                autoComplete="off"
+                className="w-64"
+              />
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => void saveKey()}
+                  disabled={keyInput.trim() === "" || status.kind === "saving"}
+                >
+                  Save key
+                </Button>
+                {hasKey ? (
+                  <Button size="sm" variant="outline" onClick={() => void removeKey()}>
+                    Remove
+                  </Button>
+                ) : null}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => void testConnection()}
+                  disabled={!hasKey || status.kind === "testing"}
+                >
+                  {status.kind === "testing" ? "Testing…" : "Test"}
+                </Button>
+              </div>
+            </div>
+          </Row>
+
+          <Row
+            label="Model"
+            description="Load the list to see which models your key supports — older models get retired."
+          >
+            <div className="flex flex-col items-stretch gap-2 sm:items-end">
+              <Select
+                aria-label="Model"
+                value={settings.aiModel}
+                onChange={(e) => update({ aiModel: e.target.value })}
+                className="max-w-[16rem]"
+              >
+                {modelOptions.map((model) => (
+                  <option key={model} value={model}>
+                    {model}
+                  </option>
+                ))}
+              </Select>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={loadModels}
+                  disabled={!hasKey || modelStatus === "loading"}
+                >
+                  {modelStatus === "loading" ? "Loading…" : "Load available models"}
+                </Button>
+                {models.length > 0 ? (
+                  <span className="text-xs text-muted-foreground">{models.length} available</span>
+                ) : null}
+                {modelStatus === "error" ? (
+                  <span className="text-xs text-destructive">
+                    Couldn't load — check your key.
+                  </span>
+                ) : null}
+              </div>
+            </div>
+          </Row>
+
+          {status.kind !== "idle" ? (
+            <Row label="Status">
+              <p
+                className={cn(
+                  "text-sm",
+                  status.kind === "error" ? "text-destructive" : "text-muted-foreground",
+                )}
+              >
+                {aiStatusLabel(status)}
+              </p>
+            </Row>
+          ) : null}
+
+          <div className="py-4 first:pt-0 last:pb-0">
+            <p className="text-xs text-muted-foreground">
+              Your questions and the record data the assistant reads are sent to the selected
+              provider ({PROVIDER_META[provider].label}) to generate answers; on a free tier the
+              provider may use that data to improve its models. The assistant never writes on its
+              own (it proposes changes you confirm), never sends your images, and is not a
+              diagnostic tool. You can turn it off any time.
+            </p>
+          </div>
+        </>
+      )}
+    </Section>
   );
 }
 

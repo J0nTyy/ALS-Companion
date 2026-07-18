@@ -26,7 +26,11 @@ npm-debug.log*
 *.sqlite
 *.sqlite3
 
-# Internal / personal working documents (kept local, not published)
+# Internal / personal working documents (kept local, not published).
+# All internal working docs now live in project-docs/ (handoff, requirements,
+# project memory, initial prompt, and any future notes).
+project-docs/
+# Filename patterns kept as a safety net in case a doc is created outside that folder.
 PROJECT_MEMORY.md
 PRODUCT_REQUIREMENTS.md
 CONVERSATION_AND_CODEBASE_HANDOFF.txt

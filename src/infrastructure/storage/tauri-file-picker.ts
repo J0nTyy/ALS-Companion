@@ -1,4 +1,4 @@
-import { open } from "@tauri-apps/plugin-dialog";
+import { open, save } from "@tauri-apps/plugin-dialog";
 
 import type { FilePicker, PickedFile } from "@/application/ports/file-storage";
 import { DesktopRequiredError } from "@/application/errors";
@@ -63,5 +63,28 @@ export class TauriFilePicker implements FilePicker {
             : null;
 
     return path;
+  }
+
+  async pickSavePath(options: {
+    title?: string;
+    defaultName: string;
+    filters?: readonly { name: string; extensions: readonly string[] }[];
+  }): Promise<string | null> {
+    if (!isTauri()) throw new DesktopRequiredError();
+
+    const selected = await save({
+      ...(options.title ? { title: options.title } : {}),
+      defaultPath: options.defaultName,
+      ...(options.filters
+        ? {
+            filters: options.filters.map((f) => ({
+              name: f.name,
+              extensions: [...f.extensions],
+            })),
+          }
+        : {}),
+    });
+
+    return typeof selected === "string" ? selected : null;
   }
 }

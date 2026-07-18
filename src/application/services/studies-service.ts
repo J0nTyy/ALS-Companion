@@ -10,6 +10,7 @@ import { updateStudy } from "@/application/use-cases/update-study";
 import { archiveStudy } from "@/application/use-cases/archive-study";
 import { listStudies } from "@/application/use-cases/list-studies";
 import { getStudy } from "@/application/use-cases/get-study";
+import { setStudySummary } from "@/application/use-cases/set-study-summary";
 
 /**
  * A small facade the presentation layer depends on. It exposes study operations
@@ -21,6 +22,8 @@ export interface StudiesService {
   get(id: string): Promise<Study | null>;
   create(input: NewStudyInput): Promise<Study>;
   update(input: UpdateStudyInput): Promise<Study>;
+  /** Set or clear the study's narrative report summary (for exports). */
+  setSummary(id: string, summary: string): Promise<Study>;
   archive(id: string): Promise<void>;
 }
 
@@ -33,6 +36,7 @@ export function createStudiesService(
     get: (id) => getStudy(deps, id),
     create: (input) => createStudy(deps, input),
     update: (input) => updateStudy(deps, input),
+    setSummary: (id, summary) => setStudySummary(deps, id, summary),
     archive: (id) => archiveStudy(deps, id),
   };
 }

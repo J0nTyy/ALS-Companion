@@ -9,6 +9,8 @@ import { samplePackage } from "@/application/export/__tests__/package-fixture";
 
 let written: { directory: string; names: string[] } | null;
 let chosenDirectory: string | null;
+// undefined → derive a path from the suggested name; null → the user cancelled.
+let chosenSavePath: string | null | undefined;
 
 /** A minimal valid PNG header (800×600) so the image-info parser reads dimensions. */
 const PNG_800x600 = (() => {
@@ -42,6 +44,9 @@ const filePicker: FilePicker = {
   async pickDirectory() {
     return chosenDirectory;
   },
+  async pickSavePath({ defaultName }) {
+    return chosenSavePath === undefined ? `/exports/${defaultName}` : chosenSavePath;
+  },
 };
 
 let service: ExportService;
@@ -49,6 +54,7 @@ let service: ExportService;
 beforeEach(() => {
   written = null;
   chosenDirectory = "/exports";
+  chosenSavePath = undefined;
   service = createExportService({ filePicker, fileStore });
 });
 
@@ -66,12 +72,21 @@ describe("ExportService.export", () => {
 
   it("does nothing when the destination picker is cancelled", async () => {
     chosenDirectory = null;
+    chosenSavePath = null;
     const result = await service.export(samplePackage(), "json");
     expect(result.status).toBe("cancelled");
     expect(written).toBeNull();
   });
 
-  it("exports a PDF report as a single file", async () => {
+  it("exports a PDF report as a single named file to the chosen path", async () => {
+    chosenSavePath = "/reports/my study.pdf";
+    const result = await service.export(samplePackage(), "pdf");
+    expect(written?.directory).toBe("/reports");
+    expect(written?.names).toEqual(["my study.pdf"]);
+    if (result.status === "done") expect(result.fileNames).toEqual(["my study.pdf"]);
+  });
+
+  it("exports a PDF report as a single file (default name)", async () => {
     await service.export(samplePackage(), "pdf");
     expect(written?.names).toHaveLength(1);
     expect(written?.names[0]?.endsWith(".pdf")).toBe(true);

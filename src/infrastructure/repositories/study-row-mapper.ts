@@ -11,6 +11,8 @@ export interface StudyRow {
   id: string;
   name: string;
   description: string | null;
+  summary: string | null;
+  summary_updated_at: string | null;
   strain: string;
   status: string;
   created_at: string;
@@ -33,6 +35,7 @@ export function mapRowToStudy(row: StudyRow): Study {
   }
 
   const description = row.description?.trim() ?? "";
+  const summary = row.summary?.trim() ?? "";
 
   return {
     id: row.id,
@@ -42,5 +45,9 @@ export function mapRowToStudy(row: StudyRow): Study {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     ...(description.length > 0 ? { description } : {}),
+    ...(summary.length > 0 ? { summary } : {}),
+    ...(summary.length > 0 && row.summary_updated_at
+      ? { summaryUpdatedAt: row.summary_updated_at }
+      : {}),
   };
 }

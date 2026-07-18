@@ -53,6 +53,9 @@ function makeService(studies: Study[], snapshot: DashboardSnapshot) {
     update: async () => {
       throw new Error("unused");
     },
+    setSummary: async () => {
+      throw new Error("unused");
+    },
     archive: async () => {},
   };
   return createDashboardService({

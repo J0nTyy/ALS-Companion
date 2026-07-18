@@ -128,7 +128,7 @@ export function ExportPanel({
         className="w-full"
       >
         {busy ? <Loader2 className="animate-spin" /> : <Download />}
-        {busy ? "Exporting…" : "Export & choose destination"}
+        {busy ? "Exporting…" : "Choose location & export"}
       </Button>
 
       {disabled && !busy ? (

@@ -10,7 +10,7 @@ stored locally on your computer.
 > estimates prognosis, or makes clinical recommendations. Everything it shows is
 > data you entered or files you attached.
 
-**Version:** this guide describes **v2.4**. The current version is always shown at
+**Version:** this guide describes **v2.6**. The current version is always shown at
 the bottom of the sidebar and under **Settings → About**.
 
 > **Reading this in the app.** This guide is built in: click **User Guide** at the
@@ -43,6 +43,7 @@ the bottom of the sidebar and under **Settings → About**.
 19. [Keyboard shortcuts](#19-keyboard-shortcuts)
 20. [Tips & troubleshooting](#20-tips--troubleshooting)
 21. [Glossary](#21-glossary)
+22. [AI assistant](#22-ai-assistant)
 
 ---
 
@@ -567,6 +568,21 @@ Open **Publish** in the sidebar to assemble a tidy **package** of a study's cont
    (including annotations and longitudinal links), and warns you if, for example, no
    animals are selected or the package would be empty.
 
+### Report summary
+
+Each study can carry a short **report summary** that appears at the top of the export.
+The editor **starts empty** every time you open Publish or switch studies, and **only
+what's in the box is exported** — an empty box means no summary in the file.
+
+- **Write it yourself**, or use **✨ Draft with assistant** to have the assistant read
+  the study and propose one (confirm the card to drop it into the box).
+- **Save summary** stores it on the study so you can bring it back later. When a saved
+  summary exists, a note shows when it was last saved with a **Load into editor** button.
+- Once a summary has been saved, **✨ Update since last report** asks the assistant to
+  revise it based on what has changed in the study since that save.
+
+(The ✨ buttons appear only when the optional [AI assistant](#22-ai-assistant) is enabled.)
+
 ### Exporting the package
 Below the preview, use **Export** to save the package to disk:
 
@@ -579,8 +595,10 @@ Below the preview, use **Export** to save the package to disk:
      `annotation_links.csv`).
    - **JSON** — the complete package as structured data (ideal for analysis or future
      AI tools; stable schema).
-2. Click **Export & choose destination** and pick a **folder**. The file(s) are
-   written there, and a message confirms success (or reports a problem).
+2. Click **Choose location & export**. For a single‑file format (PDF, Word, JSON) a
+   native **Save** dialog opens with a suggested filename you can keep or change; for
+   **CSV** (several files) you pick a **folder** instead. A message confirms success
+   (or reports a problem).
 
 The report includes the study, protocol, animals, timeline, observations, MRI
 sessions, research assets, **annotation summaries, measurements, and longitudinal
@@ -594,8 +612,8 @@ you assembled; nothing is fabricated.
   **institution / laboratory** name, and a **header/footer with page numbering**
   apply to both PDF and Word reports.
 
-> Not yet included: automatic paper writing, journal templates, AI summaries,
-> statistics, and cloud upload.
+> Not yet included: automatic paper writing, journal templates, statistics, and
+> cloud upload.
 
 ---
 
@@ -793,6 +811,66 @@ controls, **Enter/Space** activates them, and **Esc** closes a confirmation dial
 | **Annotation** | A point or rectangle drawn on an image, with an optional label and notes. |
 | **Archive** | Hide a study and make it read‑only (reversible). |
 | **Delete** | Permanently remove an item and everything inside it (not reversible). |
+
+---
+
+## 22. AI assistant
+
+The assistant is an **optional** in‑app helper that answers questions about your own
+data and about how to use the app. It is **off by default**, available only in the
+installed **desktop app**, and powered by your choice of **Google Gemini** or **Groq**.
+
+**Turn it on (Settings → AI assistant):**
+
+1. Toggle **Enable the assistant** on.
+2. Choose a **provider** — **Google Gemini** or **Groq** (Groq has higher free rate
+   limits). Create a **free** API key for it (Gemini: aistudio.google.com → *Get API
+   key*; Groq: console.groq.com → *API Keys*), paste it into the key field, and click
+   **Save key**. The key is stored on your computer in Windows Credential Manager —
+   never in the database or the app's files.
+3. Click **Load available models**, pick a **model**, and click **Test** to confirm it
+   works. (If a model is rate‑limited or has been retired, pick another from the list.)
+
+**Use it:** click the **✨ button in the top bar** to open the assistant. It opens in a
+**panel docked on the right** (not a pop‑up): the main view shrinks to make room, and
+you can **resize the panel by dragging its left edge**. (The left sidebar resizes the
+same way — drag its right edge; the app remembers both widths.) Click ✨ again, or the
+panel's close button, to hide it — your conversation is kept until you clear it. Ask
+things like:
+
+- *"Which animals in my newest study reached symptom onset first?"*
+- *"Summarise the body‑weight trend for study X."*
+- *"How do I add a histology session?"*
+- *"Record 24.3 g for M‑101 today."* — proposes an observation for you to confirm.
+- *"Draft a report summary for study X and add it to the report."*
+
+Each answer shows a short "Looked at:" note listing the parts of your workspace it
+consulted, so you can verify it.
+
+The assistant knows **which page and record you're on**, so you can say "summarise
+this study" or "what can I do on this page?" without naming things. Replies are shown
+as formatted text (headings, lists, tables). On the **Publish** page, **✨ Draft with
+assistant** hands it a ready‑made prompt for the selected study.
+
+**What it can and can't do:**
+
+- **The assistant itself never writes.** It looks things up and summarises them, and
+  it can *propose* new entries — a body weight or motor score, a timeline event, a
+  biomarker result, or a study's report summary — but each proposal appears as a
+  **card you confirm** (Add) before anything is saved. It cannot edit or delete
+  existing records; do that in the app as usual. A saved report summary is included in
+  your PDF, Word, and JSON exports (and you can edit it in the Publication workspace).
+- It reports only **data that already exists** in your workspace and is instructed
+  not to invent studies, animals, values, or numbers. Still, like any AI it can make
+  mistakes — verify anything important.
+- It is **not a diagnostic tool**: it describes and summarises your recorded data but
+  will not diagnose, grade, or interpret disease.
+
+**Privacy:** when you ask a question, the question and the specific record data the
+assistant reads are sent to your chosen provider (Google Gemini or Groq) to generate
+the answer. On a provider's **free tier**, it may use that data to improve its models.
+Your **images are never sent**. If you would rather keep everything on your machine,
+leave the assistant off — you can remove your key or disable it at any time.
 
 ---
 

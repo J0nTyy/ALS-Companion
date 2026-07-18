@@ -7,6 +7,7 @@ import type {
   ReportImages,
   ReportOptions,
 } from "@/application/export/export-types";
+import { EXPORT_FORMAT_META } from "@/application/export/export-types";
 import { readImageInfo } from "@/application/export/image-info";
 
 /** The result of an export attempt. */
@@ -44,6 +45,14 @@ export interface ExportService {
 export interface ExportServiceDeps {
   filePicker: FilePicker;
   fileStore: FileStore;
+}
+
+/** Split an absolute path into its directory + final segment (handles \\ and /). */
+function splitPath(path: string): { dir: string; name: string } {
+  const index = Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\"));
+  return index >= 0
+    ? { dir: path.slice(0, index), name: path.slice(index + 1) }
+    : { dir: "", name: path };
 }
 
 /** The image stored-files eligible for embedding/attaching (PNG + JPEG). */
@@ -86,6 +95,24 @@ export function createExportService(deps: ExportServiceDeps): ExportService {
       // lazily on first export — keeping them out of the initial app bundle.
       const { exportPackage } = await import("@/application/export/export-engine");
       const bundle = await exportPackage(pkg, format, images, options?.report);
+
+      // A single-file export (PDF, DOCX, JSON) gets a native Save dialog so the
+      // researcher can name the file — the generated name is pre-filled, so they can
+      // just accept it. A multi-file export (CSV) can't share one filename, so it
+      // still picks a destination folder and the files keep their generated names.
+      if (bundle.files.length === 1) {
+        const [only] = bundle.files;
+        if (!only) return { status: "cancelled" };
+        const chosen = await deps.filePicker.pickSavePath({
+          title: "Choose location and export",
+          defaultName: only.name,
+          filters: [{ name: EXPORT_FORMAT_META[format].label, extensions: [format] }],
+        });
+        if (!chosen) return { status: "cancelled" };
+        const { dir, name } = splitPath(chosen);
+        await deps.fileStore.writeExportFiles(dir, [{ name, bytes: only.bytes }]);
+        return { status: "done", directory: dir, fileNames: [name] };
+      }
 
       const directory = await deps.filePicker.pickDirectory(
         "Choose export destination",

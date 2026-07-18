@@ -6,11 +6,11 @@ export const APP = {
   name: "ALS Research Companion",
   shortName: "Companion",
   tagline: "A calm workspace for ALS transgenic mouse research.",
-  version: "2.5.1",
+  version: "2.8.0",
   /** Local SQLite database file, resolved relative to the app data directory. */
   databaseFile: "als_research_companion.db",
   /** Highest applied SQLite migration (kept in sync with src-tauri/src/lib.rs). */
-  schemaVersion: 13,
+  schemaVersion: 15,
 } as const;
 
 export type AppConfig = typeof APP;
@@ -34,4 +34,6 @@ export const MIGRATIONS: ReadonlyArray<{ version: number; description: string }>
   { version: 11, description: "histology sessions" },
   { version: 12, description: "biomarker samples" },
   { version: 13, description: "biomarker results" },
+  { version: 14, description: "study report summary" },
+  { version: 15, description: "summary last-saved timestamp" },
 ];

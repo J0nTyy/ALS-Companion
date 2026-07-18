@@ -1,14 +1,20 @@
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
 
 import { ThemeToggle } from "@/presentation/components/theme-toggle";
 import { GlobalSearchBox } from "@/presentation/features/search/global-search-box";
+import { Button } from "@/presentation/components/ui/button";
+import { cn } from "@/shared/lib/utils";
 import { useSettings } from "@/shared/hooks/use-settings";
 import { recordWorkspacePath } from "@/shared/lib/last-workspace";
 import { useUpdater } from "@/presentation/features/updater/updater-context";
 import { UpdateBanner } from "@/presentation/features/updater/update-banner";
+import { AssistantPanel } from "@/presentation/features/assistant/assistant-panel";
+import { useAssistant } from "@/presentation/features/assistant/assistant-context";
 import { AppSidebar } from "./app-sidebar";
+import { ResizeHandle } from "./resize-handle";
+import { useResizablePanel } from "./use-resizable-panel";
 
 const COLLAPSE_KEY = "als.sidebar.collapsed";
 
@@ -26,22 +32,43 @@ function readCollapsed(): boolean | null {
 }
 
 /**
- * The top-level frame that wraps every screen: a collapsible sidebar, a slim top
- * bar with the collapse toggle and always-available global search, and a
- * scrollable content region rendered via the router's <Outlet />.
- *
- * Collapsing the sidebar to an icon rail hands its width back to the content,
- * which flexes to fill the available space — the workspace stays responsive on
- * both narrow laptops and wide desktop monitors. The choice is remembered.
+ * The top-level frame that wraps every screen: a collapsible **left sidebar**, the
+ * scrollable content region (router `<Outlet />`), and a dockable **right panel**
+ * (the AI assistant for now; a plugin host later). Both side panels are resizable
+ * by dragging the bar on their inner edge — the center content flexes to fill
+ * whatever space is left, so opening or widening a panel shrinks the center (VS
+ * Code style). Widths and the collapse/open choices are remembered.
  */
 export function AppShell() {
   const { settings } = useSettings();
   const location = useLocation();
   const updater = useUpdater();
+  const {
+    available: assistantAvailable,
+    open: assistantOpen,
+    toggle: toggleAssistant,
+    setOpen: setAssistantOpen,
+  } = useAssistant();
+
   // Remembered explicit choice wins; otherwise fall back to the Settings default.
   const [collapsed, setCollapsed] = useState(
     () => readCollapsed() ?? settings.sidebarDefaultCollapsed,
   );
+
+  const sidebar = useResizablePanel({
+    storageKey: "als.sidebar.width",
+    defaultWidth: 240,
+    min: 200,
+    max: 480,
+    grow: "rightward",
+  });
+  const rightPanel = useResizablePanel({
+    storageKey: "als.assistant.width",
+    defaultWidth: 380,
+    min: 300,
+    max: 640,
+    grow: "leftward",
+  });
 
   // Quietly check for an update once on launch (offline failures are swallowed).
   useEffect(() => {
@@ -68,6 +95,8 @@ export function AppShell() {
     });
   }, []);
 
+  const assistantVisible = assistantAvailable && assistantOpen;
+
   return (
     <div className="flex h-full w-full overflow-hidden bg-background">
       {settings.enhancedKeyboardNav ? (
@@ -79,18 +108,38 @@ export function AppShell() {
         </a>
       ) : null}
 
-      <AppSidebar collapsed={collapsed} onToggle={toggle} />
+      <AppSidebar collapsed={collapsed} width={sidebar.width} onToggle={toggle} />
+      {collapsed ? null : (
+        <ResizeHandle
+          ariaLabel="Resize the sidebar"
+          onPointerDown={sidebar.onPointerDown}
+          onKeyDown={sidebar.onKeyDown}
+        />
+      )}
 
       <div className="flex min-w-0 flex-1 flex-col">
         <UpdateBanner />
         <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border px-4">
           <GlobalSearchBox />
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-1">
+            {assistantAvailable ? (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleAssistant}
+                aria-label={assistantOpen ? "Close the assistant panel" : "Open the assistant panel"}
+                aria-pressed={assistantOpen}
+                title="Research assistant"
+                className={cn(assistantOpen && "bg-accent text-accent-foreground")}
+              >
+                <Sparkles />
+              </Button>
+            ) : null}
             <ThemeToggle />
           </div>
         </header>
 
-        <main id="main-content" tabIndex={-1} className="flex-1 overflow-y-auto">
+        <main id="main-content" tabIndex={-1} className="flex-1 overflow-y-auto overscroll-none">
           <div className="mx-auto w-full max-w-screen-2xl animate-fade-in px-6 py-6">
             <Suspense
               fallback={
@@ -109,6 +158,30 @@ export function AppShell() {
           </div>
         </main>
       </div>
+
+      {/* Right dock. Kept mounted while hidden so the conversation survives toggling;
+          the resize handle only exists while it's visible. */}
+      {assistantAvailable ? (
+        <>
+          {assistantVisible ? (
+            <ResizeHandle
+              ariaLabel="Resize the assistant panel"
+              onPointerDown={rightPanel.onPointerDown}
+              onKeyDown={rightPanel.onKeyDown}
+            />
+          ) : null}
+          <aside
+            aria-label="Research assistant panel"
+            className={cn(
+              "h-full shrink-0 flex-col border-l border-border bg-card",
+              assistantVisible ? "flex" : "hidden",
+            )}
+            style={{ width: rightPanel.width }}
+          >
+            <AssistantPanel open={assistantVisible} onClose={() => setAssistantOpen(false)} />
+          </aside>
+        </>
+      ) : null}
     </div>
   );
 }

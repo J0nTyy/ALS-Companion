@@ -5,72 +5,17 @@ import { Search, X } from "lucide-react";
 import { PageHeader } from "@/presentation/components/page-header";
 import { Input } from "@/presentation/components/ui/input";
 import { cn } from "@/shared/lib/utils";
-// The canonical User Guide, rendered in-app (raw Markdown via Vite's ?raw import).
-import guideSource from "../../../../USER_GUIDE.md?raw";
 import { Markdown } from "./markdown";
-import { slugify } from "./markdown-utils";
-
-interface GuideSection {
-  id: string;
-  title: string;
-  /** Raw markdown of the section (heading + body), for rendering + search. */
-  body: string;
-  /** Lower-cased text for search matching. */
-  haystack: string;
-}
-
-interface ParsedGuide {
-  intro: string;
-  sections: GuideSection[];
-}
-
-/** Split the guide into an intro + `## ` sections, dropping its own TOC section. */
-function parseGuide(md: string): ParsedGuide {
-  const lines = md.replace(/\r\n/g, "\n").split("\n");
-  const intro: string[] = [];
-  const sections: GuideSection[] = [];
-  let current: { title: string; lines: string[] } | null = null;
-  let started = false;
-
-  const flush = () => {
-    if (!current) return;
-    if (current.title.toLowerCase() !== "table of contents") {
-      const body = current.lines.join("\n").trim();
-      sections.push({
-        id: slugify(current.title),
-        title: current.title.replace(/^\d+\.\s*/, ""),
-        body: `## ${current.title}\n\n${body}`,
-        haystack: `${current.title}\n${body}`.toLowerCase(),
-      });
-    }
-    current = null;
-  };
-
-  for (const line of lines) {
-    const h2 = /^##\s+(.*)$/.exec(line);
-    if (h2) {
-      started = true;
-      flush();
-      current = { title: h2[1]!.trim(), lines: [] };
-      continue;
-    }
-    if (current) {
-      current.lines.push(line);
-    } else if (!started) {
-      // Skip the top-level H1 (used as the page header instead).
-      if (!/^#\s+/.test(line)) intro.push(line);
-    }
-  }
-  flush();
-  return { intro: intro.join("\n").trim(), sections };
-}
+// Parsed once in the shared module and reused by the assistant's guide tool, so
+// in-app help and AI guide help stay in sync with the shipped documentation.
+import { USER_GUIDE } from "@/shared/guide/user-guide";
 
 export function HelpPage() {
   const location = useLocation();
   const [query, setQuery] = useState("");
   const contentRef = useRef<HTMLDivElement>(null);
 
-  const guide = useMemo(() => parseGuide(guideSource), []);
+  const guide = USER_GUIDE;
 
   const q = query.trim().toLowerCase();
   const visibleSections = useMemo(

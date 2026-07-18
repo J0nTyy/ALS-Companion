@@ -126,6 +126,9 @@
   html,
   body {
     @apply h-full;
+    /* Kill the WebView rubber-band/overscroll so the page can't bounce away from
+     * its margins when a scroll gesture hits a region with nothing left to scroll. */
+    overscroll-behavior: none;
   }
 
   body {

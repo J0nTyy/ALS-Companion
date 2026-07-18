@@ -46,6 +46,8 @@ export interface PublicationWorkspaceService {
   /** Load one study's full contents (animals → timeline/observations → MRI →
    *  assets → files, plus the protocol) for selection. */
   loadStudy(studyId: string): Promise<WorkspaceStudyContents>;
+  /** Save (or clear) the study's narrative report summary (included in exports). */
+  saveStudySummary(studyId: string, summary: string): Promise<void>;
 }
 
 export function createPublicationWorkspaceService(
@@ -159,6 +161,10 @@ export function createPublicationWorkspaceService(
         annotations,
         annotationLinks,
       };
+    },
+
+    async saveStudySummary(studyId, summary): Promise<void> {
+      await deps.studies.setSummary(studyId, summary);
     },
   };
 }

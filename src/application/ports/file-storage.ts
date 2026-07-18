@@ -62,4 +62,16 @@ export interface FilePicker {
    * path, or null if cancelled.
    */
   pickDirectory(title?: string): Promise<string | null>;
+
+  /**
+   * Prompt for a single output file path via a native Save dialog (for exporting a
+   * one-file document). `defaultName` pre-fills the filename — the researcher can
+   * accept it or type their own. Resolves to the chosen absolute path, or null if
+   * cancelled.
+   */
+  pickSavePath(options: {
+    title?: string;
+    defaultName: string;
+    filters?: readonly { name: string; extensions: readonly string[] }[];
+  }): Promise<string | null>;
 }

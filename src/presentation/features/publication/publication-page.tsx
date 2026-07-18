@@ -1,3 +1,6 @@
+import { useState } from "react";
+import { Sparkles } from "lucide-react";
+
 import { STUDY_STATUS_META } from "@/domain/entities/study";
 import { TIMELINE_EVENT_CATEGORY_META } from "@/domain/entities/timeline-event";
 import { OBSERVATION_KIND_META } from "@/domain/entities/observation";
@@ -11,9 +14,15 @@ import type { WorkspaceStudyContents } from "@/application/use-cases/publication
 import { Button } from "@/presentation/components/ui/button";
 import { Label } from "@/presentation/components/ui/label";
 import { Select } from "@/presentation/components/ui/select";
+import { Textarea } from "@/presentation/components/ui/textarea";
 import { HelpHint } from "@/presentation/features/help/help-hint";
 import { HELP } from "@/presentation/features/help/help-sections";
 import { formatDateOnly } from "@/shared/lib/format";
+import { toUserMessage } from "@/presentation/lib/error-message";
+import {
+  useAssistant,
+  useDeclareAssistantContext,
+} from "@/presentation/features/assistant/assistant-context";
 import { usePublicationWorkspace } from "./use-publication-workspace";
 import {
   ChecklistSection,
@@ -29,6 +38,14 @@ import { ExportPanel } from "./components/export-panel";
  */
 export function PublicationPage() {
   const ws = usePublicationWorkspace();
+
+  // Let the assistant know which study is selected here, so a request to "draft a
+  // summary" or "analyse this" resolves to the right study without being told.
+  useDeclareAssistantContext(
+    ws.contents.status === "ready"
+      ? `The study "${ws.contents.contents.study.name}" (id ${ws.contents.contents.study.id}) is selected in the Publication workspace; they may be assembling an export package or drafting the study's report summary.`
+      : "No study is selected in the Publication workspace yet.",
+  );
 
   return (
     <div className="space-y-6">
@@ -92,7 +109,19 @@ export function PublicationPage() {
               <Message>Choose a study above to select what to include.</Message>
             ) : null}
             {ws.contents.status === "ready" ? (
-              <SelectionSections contents={ws.contents.contents} ws={ws} />
+              <>
+                <SummaryEditor
+                  key={ws.contents.contents.study.id}
+                  studyName={ws.contents.contents.study.name}
+                  studyId={ws.contents.contents.study.id}
+                  draft={ws.draftSummary}
+                  onDraftChange={ws.setDraftSummary}
+                  onSave={ws.saveDraftSummary}
+                  savedSummary={ws.savedSummary}
+                  savedSummaryAt={ws.savedSummaryAt}
+                />
+                <SelectionSections contents={ws.contents.contents} ws={ws} />
+              </>
             ) : null}
           </div>
 
@@ -202,6 +231,131 @@ function SelectionSections({
       {section("Histology sessions", "histologySessionIds", histologyItems)}
       {section("Biomarker samples", "biomarkerSampleIds", biomarkerItems)}
       {section("Research assets", "researchAssetIds", assetItems)}
+    </div>
+  );
+}
+
+/**
+ * Edit the study's narrative report summary — what shows up in the PDF/Word/JSON
+ * exports. The box starts EMPTY on each study (and each app launch): only what's in
+ * it exports. The last saved summary is kept separately — "Load into editor" pulls
+ * it back in — and the assistant can draft one from scratch or update it against
+ * what's changed since the last save. Remounted per study via a `key`.
+ */
+function SummaryEditor({
+  studyName,
+  studyId,
+  draft,
+  onDraftChange,
+  onSave,
+  savedSummary,
+  savedSummaryAt,
+}: {
+  studyName: string;
+  studyId: string;
+  draft: string;
+  onDraftChange: (text: string) => void;
+  onSave: () => Promise<void>;
+  savedSummary: string | null;
+  savedSummaryAt: string | null;
+}) {
+  const { ask, available } = useAssistant();
+  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [message, setMessage] = useState("");
+
+  const trimmed = draft.trim();
+  // Save only when there's new, non-empty text — so an empty box on open can't wipe
+  // the saved summary, and re-saving the loaded one is a no-op.
+  const canSave = trimmed.length > 0 && trimmed !== (savedSummary ?? "");
+
+  const save = async () => {
+    setStatus("saving");
+    try {
+      await onSave();
+      setStatus("saved");
+    } catch (error) {
+      setStatus("error");
+      setMessage(toUserMessage(error, "We couldn't save the summary."));
+    }
+  };
+
+  // Open the assistant with a ready-made prompt; it gathers the data and proposes a
+  // summary the researcher confirms straight into this box.
+  const draftFull = () =>
+    ask(
+      `Draft a report summary for the study "${studyName}" (id ${studyId}). Review its animals, observation trends, timeline milestones, and biomarker results, then propose a substantive summary I can review and add.`,
+    );
+
+  const draftUpdate = () =>
+    ask(
+      `Update the report summary for the study "${studyName}" (id ${studyId}). ` +
+        `Its last report was saved on ${savedSummaryAt ? formatDateOnly(savedSummaryAt) : "an earlier date"}. ` +
+        `Review what has been added or changed in the study since then (new observations, timeline events, biomarker results) ` +
+        `and propose a revised summary that builds on the previous one. Previous summary:\n\n${savedSummary ?? ""}`,
+    );
+
+  return (
+    <div className="space-y-2 rounded-lg border border-border p-3">
+      <div className="flex items-center justify-between gap-2">
+        <Label htmlFor="study-summary">Report summary</Label>
+        <span className="text-xs text-muted-foreground">
+          Included in PDF, Word &amp; JSON exports
+        </span>
+      </div>
+
+      {savedSummary ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-md bg-muted/50 px-2.5 py-1.5 text-xs text-muted-foreground">
+          <span>
+            A saved summary exists
+            {savedSummaryAt ? ` (last saved ${formatDateOnly(savedSummaryAt)})` : ""}.
+          </span>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-6 px-2"
+            onClick={() => {
+              onDraftChange(savedSummary);
+              setStatus("idle");
+            }}
+          >
+            Load into editor
+          </Button>
+        </div>
+      ) : null}
+
+      <Textarea
+        id="study-summary"
+        value={draft}
+        onChange={(e) => {
+          onDraftChange(e.target.value);
+          if (status !== "idle") setStatus("idle");
+        }}
+        rows={4}
+        placeholder="Write a summary, load the last one, or ask the assistant to draft one…"
+      />
+      <div className="flex flex-wrap items-center gap-2">
+        <Button size="sm" onClick={() => void save()} disabled={!canSave || status === "saving"}>
+          {status === "saving" ? "Saving…" : "Save summary"}
+        </Button>
+        {available ? (
+          <Button size="sm" variant="outline" onClick={draftFull}>
+            <Sparkles className="h-4 w-4" aria-hidden="true" />
+            Draft with assistant
+          </Button>
+        ) : null}
+        {available && savedSummary ? (
+          <Button size="sm" variant="outline" onClick={draftUpdate}>
+            <Sparkles className="h-4 w-4" aria-hidden="true" />
+            Update since last report
+          </Button>
+        ) : null}
+        {status === "saved" && !canSave ? (
+          <span className="text-xs text-primary">Saved</span>
+        ) : null}
+        {status === "error" ? (
+          <span className="text-xs text-destructive">{message}</span>
+        ) : null}
+      </div>
     </div>
   );
 }

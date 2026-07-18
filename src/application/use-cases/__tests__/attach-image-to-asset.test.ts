@@ -152,6 +152,9 @@ function setup(options: SetupOptions = {}) {
     async pickDirectory() {
       return null;
     },
+    async pickSavePath() {
+      return null;
+    },
   };
   const now = options.now ?? "2026-07-13T00:00:00.000Z";
   const deps: StorageUseCaseDeps = {

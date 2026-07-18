@@ -27,6 +27,18 @@ export interface Study {
   strain: string;
   /** Where the study sits in its lifecycle. */
   status: StudyStatus;
+  /**
+   * Optional narrative report summary, included in exports (PDF/DOCX/JSON). Set via
+   * the AI assistant or the Publish workspace — not the study form — so a normal
+   * study edit preserves it. (Migration v14.)
+   */
+  summary?: string;
+  /**
+   * ISO-8601 timestamp of when {@link summary} was last saved. Used to show "last
+   * saved" and to anchor the assistant's "update since the last report" draft.
+   * Present only when a summary is set. (Migration v15.)
+   */
+  summaryUpdatedAt?: string;
   /** ISO-8601 creation timestamp. */
   readonly createdAt: string;
   /** ISO-8601 timestamp of the last modification. */

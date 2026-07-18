@@ -114,6 +114,14 @@ export function buildReportModel(pkg: PublicationPackage): ReportDocument {
     ],
   });
 
+  // Report summary (a narrative the researcher wrote / drafted with the assistant).
+  if (pkg.study.summary) {
+    sections.push({
+      heading: "Summary",
+      blocks: [{ kind: "paragraph", text: pkg.study.summary }],
+    });
+  }
+
   // Protocol
   sections.push({
     heading: "Protocol",

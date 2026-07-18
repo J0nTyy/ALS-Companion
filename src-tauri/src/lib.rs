@@ -317,6 +317,23 @@ fn migrations() -> Vec<Migration> {
                 ON biomarker_results (biomarker_sample_id, created_at);",
             kind: MigrationKind::Up,
         },
+        // A study's optional narrative report summary (for publication/exports).
+        // Nullable and additive — existing rows are untouched. Written only via the
+        // AI assistant or the Publish workspace; normal study edits preserve it.
+        Migration {
+            version: 14,
+            description: "add_studies_summary",
+            sql: "ALTER TABLE studies ADD COLUMN summary TEXT;",
+            kind: MigrationKind::Up,
+        },
+        // When the report summary was last saved. Powers "load last summary" and the
+        // assistant's "update since the last report" draft. Nullable and additive.
+        Migration {
+            version: 15,
+            description: "add_studies_summary_updated_at",
+            sql: "ALTER TABLE studies ADD COLUMN summary_updated_at TEXT;",
+            kind: MigrationKind::Up,
+        },
     ]
 }
 
@@ -431,6 +448,204 @@ fn write_export_files(
     Ok(())
 }
 
+// ---------------------------------------------------------------------------
+// AI assistant — key custody + outbound requests, both on the Rust side.
+//
+// Supports multiple providers (Gemini, Groq). Each provider's API key lives in the
+// OS credential store under its own entry — never in the database, localStorage, or
+// the app bundle. The webview passes a provider + request body only; the key is
+// injected here on the native side, and the outbound HTTPS call is made by Rust (not
+// the webview), so the webview CSP need not allow the AI hosts. The frontend builds
+// the provider-specific body; these commands are thin, key-injecting proxies.
+// ---------------------------------------------------------------------------
+
+const AI_KEYRING_SERVICE: &str = "com.alsresearch.companion";
+
+/// Only known providers are accepted — they key into the credential store and select
+/// the endpoint, so reject anything else rather than trusting the webview.
+fn is_valid_provider(provider: &str) -> bool {
+    matches!(provider, "gemini" | "groq")
+}
+
+fn ai_key_entry(provider: &str) -> Result<keyring::Entry, String> {
+    if !is_valid_provider(provider) {
+        return Err("Unknown AI provider.".into());
+    }
+    keyring::Entry::new(AI_KEYRING_SERVICE, &format!("{provider}-api-key"))
+        .map_err(|e| format!("Could not access the secure key store: {e}"))
+}
+
+/// Store a provider's API key in the OS credential store.
+#[tauri::command]
+fn ai_set_key(provider: String, key: String) -> Result<(), String> {
+    let trimmed = key.trim();
+    if trimmed.is_empty() {
+        return Err("The API key is empty.".into());
+    }
+    ai_key_entry(&provider)?
+        .set_password(trimmed)
+        .map_err(|e| format!("Could not save the API key: {e}"))
+}
+
+/// Whether a non-empty API key is stored for the provider.
+#[tauri::command]
+fn ai_has_key(provider: String) -> Result<bool, String> {
+    match ai_key_entry(&provider)?.get_password() {
+        Ok(value) => Ok(!value.is_empty()),
+        Err(keyring::Error::NoEntry) => Ok(false),
+        Err(e) => Err(format!("Could not read the secure key store: {e}")),
+    }
+}
+
+/// Remove the provider's stored API key (a missing key is not an error).
+#[tauri::command]
+fn ai_clear_key(provider: String) -> Result<(), String> {
+    match ai_key_entry(&provider)?.delete_credential() {
+        Ok(()) => Ok(()),
+        Err(keyring::Error::NoEntry) => Ok(()),
+        Err(e) => Err(format!("Could not clear the API key: {e}")),
+    }
+}
+
+/// Read the provider's stored key, or a friendly error if none is set. Returns an
+/// owned String and drops the (non-Send) keyring entry here, so callers can hold the
+/// result across an await point.
+fn read_ai_key(provider: &str) -> Result<String, String> {
+    let entry = ai_key_entry(provider)?;
+    match entry.get_password() {
+        Ok(value) if !value.is_empty() => Ok(value),
+        Ok(_) | Err(keyring::Error::NoEntry) => {
+            Err("No API key is set for this provider. Add one in Settings → AI assistant.".into())
+        }
+        Err(e) => Err(format!("Could not read the API key: {e}")),
+    }
+}
+
+/// Model ids are interpolated into the Gemini request URL, so restrict them to the
+/// safe character set (letters, digits, dot, underscore, hyphen).
+fn is_valid_model_id(model: &str) -> bool {
+    !model.is_empty()
+        && model.len() <= 80
+        && model
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-'))
+}
+
+/// List the model ids the stored key can use, so the UI can offer the ones that
+/// actually work (availability changes over time — older models get retired).
+#[tauri::command]
+async fn ai_list_models(provider: String) -> Result<Vec<String>, String> {
+    if !is_valid_provider(&provider) {
+        return Err("Unknown AI provider.".into());
+    }
+    let key = read_ai_key(&provider)?;
+    let client = reqwest::Client::new();
+    let request = match provider.as_str() {
+        "gemini" => client
+            .get("https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000")
+            .header("x-goog-api-key", key),
+        "groq" => client
+            .get("https://api.groq.com/openai/v1/models")
+            .header("authorization", format!("Bearer {key}")),
+        _ => return Err("Unknown AI provider.".into()),
+    };
+    let response = request
+        .send()
+        .await
+        .map_err(|e| format!("Could not reach the AI service: {e}"))?;
+    let status = response.status();
+    let text = response
+        .text()
+        .await
+        .map_err(|e| format!("Could not read the AI response: {e}"))?;
+    if !status.is_success() {
+        return Err(format!("AI service error ({}): {text}", status.as_u16()));
+    }
+    let json: serde_json::Value =
+        serde_json::from_str(&text).map_err(|e| format!("Could not parse the AI response: {e}"))?;
+
+    let mut models: Vec<String> = Vec::new();
+    match provider.as_str() {
+        "gemini" => {
+            if let Some(list) = json.get("models").and_then(|m| m.as_array()) {
+                for model in list {
+                    let supports_generate = model
+                        .get("supportedGenerationMethods")
+                        .and_then(|m| m.as_array())
+                        .map(|methods| {
+                            methods.iter().any(|v| v.as_str() == Some("generateContent"))
+                        })
+                        .unwrap_or(false);
+                    if !supports_generate {
+                        continue;
+                    }
+                    if let Some(name) = model.get("name").and_then(|n| n.as_str()) {
+                        models.push(name.strip_prefix("models/").unwrap_or(name).to_string());
+                    }
+                }
+            }
+        }
+        "groq" => {
+            if let Some(list) = json.get("data").and_then(|m| m.as_array()) {
+                for model in list {
+                    if let Some(id) = model.get("id").and_then(|n| n.as_str()) {
+                        models.push(id.to_string());
+                    }
+                }
+            }
+        }
+        _ => {}
+    }
+    Ok(models)
+}
+
+/// Proxy one generation request to the selected provider. The webview passes the
+/// provider, model, and request body; the stored key is injected here and never
+/// exposed to the webview. Non-2xx responses surface the provider's error text so
+/// the UI can explain what went wrong (bad key, unknown model, quota, safety block).
+#[tauri::command]
+async fn ai_generate(
+    provider: String,
+    model: String,
+    body: serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    if !is_valid_provider(&provider) {
+        return Err("Unknown AI provider.".into());
+    }
+    let key = read_ai_key(&provider)?;
+    let client = reqwest::Client::new();
+    let request = match provider.as_str() {
+        "gemini" => {
+            if !is_valid_model_id(&model) {
+                return Err("Invalid model id.".into());
+            }
+            let url = format!(
+                "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+            );
+            client.post(url).header("x-goog-api-key", key).json(&body)
+        }
+        "groq" => client
+            .post("https://api.groq.com/openai/v1/chat/completions")
+            .header("authorization", format!("Bearer {key}"))
+            .json(&body),
+        _ => return Err("Unknown AI provider.".into()),
+    };
+    let response = request
+        .send()
+        .await
+        .map_err(|e| format!("Could not reach the AI service: {e}"))?;
+    let status = response.status();
+    let text = response
+        .text()
+        .await
+        .map_err(|e| format!("Could not read the AI response: {e}"))?;
+    if !status.is_success() {
+        return Err(format!("AI service error ({}): {text}", status.as_u16()));
+    }
+    serde_json::from_str::<serde_json::Value>(&text)
+        .map_err(|e| format!("Could not parse the AI response: {e}"))
+}
+
 /// On a FRESH install, seed the bundled sample dataset so the app opens with data to
 /// explore. Copies the bundled seed database into the app's config directory (where
 /// the SQL plugin opens it) and the bundled managed images into the app's local-data
@@ -498,7 +713,12 @@ pub fn run() {
             attach_image_file,
             delete_managed_files,
             write_export_files,
-            read_managed_file
+            read_managed_file,
+            ai_set_key,
+            ai_has_key,
+            ai_clear_key,
+            ai_generate,
+            ai_list_models
         ])
         .run(tauri::generate_context!())
         .expect("error while running the ALS Research Companion application");

@@ -20,6 +20,8 @@ import type { AnnotationService } from "@/application/services/annotation-servic
 import type { AnnotationLinkService } from "@/application/services/annotation-link-service";
 import type { ExportService } from "@/application/services/export-service";
 import type { AnalyticsService } from "@/application/services/analytics-service";
+import type { AgentService } from "@/application/services/agent-service";
+import type { AiCredentialStore } from "@/application/ports/ai-assistant";
 import { ThemeProvider } from "@/shared/hooks/use-theme";
 import { SettingsProvider } from "@/shared/hooks/use-settings";
 import { AppShell } from "@/presentation/layouts/app-shell";
@@ -32,6 +34,7 @@ import { AnnotationLinkServiceProvider } from "@/presentation/features/annotatio
 import { ContextMenuProvider } from "@/presentation/features/context-menu/context-menu-context";
 import { ToastProvider } from "@/presentation/features/toast/toast-context";
 import { UpdaterProvider } from "@/presentation/features/updater/updater-context";
+import { AssistantProvider } from "@/presentation/features/assistant/assistant-context";
 import { AnalyticsServiceProvider } from "@/presentation/features/analytics/analytics-service-context";
 import { StudiesServiceProvider } from "@/presentation/features/studies/studies-service-context";
 import { AnimalsServiceProvider } from "@/presentation/features/animals/animals-service-context";
@@ -137,6 +140,8 @@ export function App({
   annotationLinkService,
   exportService,
   analyticsService,
+  agentService,
+  aiCredentialStore,
 }: {
   studiesService: StudiesService;
   animalsService: AnimalsService;
@@ -157,12 +162,15 @@ export function App({
   annotationLinkService: AnnotationLinkService;
   exportService: ExportService;
   analyticsService: AnalyticsService;
+  agentService: AgentService;
+  aiCredentialStore: AiCredentialStore;
 }) {
   return (
     <ThemeProvider>
       <SettingsProvider>
       <ToastProvider>
       <UpdaterProvider>
+      <AssistantProvider service={agentService} credentials={aiCredentialStore}>
       <AnalyticsServiceProvider service={analyticsService}>
       <ContextMenuProvider>
       <StudiesServiceProvider service={studiesService}>
@@ -228,6 +236,7 @@ export function App({
       </StudiesServiceProvider>
       </ContextMenuProvider>
       </AnalyticsServiceProvider>
+      </AssistantProvider>
       </UpdaterProvider>
       </ToastProvider>
       </SettingsProvider>

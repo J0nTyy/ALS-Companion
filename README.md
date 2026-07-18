@@ -6,7 +6,10 @@ engineers.
 
 > **Research-productivity tool, not a diagnostic or clinical system.** It never
 > diagnoses, grades, or stages disease and makes no clinical recommendations. All
-> data stays on the researcher's computer — **no accounts, no telemetry, no cloud.**
+> data stays on the researcher's computer — **no accounts, no telemetry, no cloud** —
+> with one clearly-labelled, **off-by-default** exception: the optional AI assistant
+> (see below) sends a question plus the records it reads to your chosen provider
+> (**Google Gemini** or **Groq**) only when you turn it on and add your own key.
 
 It replaces scattered spreadsheets, folders, and notes with one unified workspace
 that follows the real laboratory workflow: **Study → Animals → Observations &
@@ -53,10 +56,33 @@ Timeline → MRI sessions → Images → Annotations → Longitudinal links → 
 - **Universal search** — find any entity by text and rich filters.
 - **Dashboard** — a home screen summarizing the current research state (current study,
   today's work, quick stats, recent activity) from real data only.
-- **Publication workspace** — assemble a structured research package from a study.
+- **Publication workspace** — assemble a structured research package from a study,
+  including an optional **report summary**. The summary editor opens empty each time
+  (only what's in it is exported); the last saved summary is kept and reloadable on
+  request, and the assistant can **draft one from scratch** or **update it against
+  what's changed since the last report**.
 - **Export & report engine** — export the package to **PDF**, **DOCX**, **CSV**, or
-  **JSON** (stable schema for downstream analysis/AI). PDF and DOCX are generated with
-  no third-party document libraries.
+  **JSON** (stable schema for downstream analysis/AI). A single-file export opens a
+  native **Save** dialog so you can name the file (the generated name is pre-filled);
+  PDF and DOCX are generated with no third-party document libraries.
+
+**Assistant (optional)**
+- **AI assistant** — an opt-in helper that answers questions about your own data and
+  how to use the app, and can help you **enter data** and **draft a report summary**.
+  It works only through your existing use-cases, so it surfaces real records (never
+  fabricated), and **the agent itself never writes** — anything it proposes (an
+  observation, timeline event, biomarker result, or a study's report summary) appears
+  as a **card you confirm** before it's saved, and it never sends your images.
+  - **Bring your own free key** for one of two providers, selectable in Settings:
+    **Google Gemini** or **Groq** (higher free rate limits). Keys are held in the OS
+    credential store, never in the app or database.
+  - It is **page-aware**: it knows which screen and record you're on, so "summarise
+    this study" or "what's on this page?" resolve without you spelling it out.
+  - Replies render as **formatted Markdown**; on the Publish page a **Draft with
+    assistant** button hands it a ready-made prompt for the selected study.
+  - **Off by default**, desktop-only, not a diagnostic tool. It opens in a resizable
+    **right dock** (toggled from the top bar) — the panel a future plugin manager will
+    share. Behind a provider port, so the model backend can change without touching the agent.
 
 **Experience**
 - **Two-column detail pages** (study & animal): a wide main column plus a sticky
@@ -64,15 +90,18 @@ Timeline → MRI sessions → Images → Annotations → Longitudinal links → 
   **collapsible sections** and count badges so large datasets stay scannable.
 - Desktop-style **right-click context menus** throughout (the browser menu is
   suppressed everywhere except editable text fields, so copy/paste still works).
-- Light / dark / system themes, a collapsible sidebar, and keyboard shortcuts
-  (including in the image viewer: `+`/`−` zoom, arrows pan, `0` reset, `F` fit).
+- Light / dark / system themes; a **collapsible, resizable** left sidebar and a
+  **dockable, resizable right panel** (drag either panel's inner edge — VS Code style;
+  the center flexes to fit); and keyboard shortcuts (including in the image viewer:
+  `+`/`−` zoom, arrows pan, `0` reset, `F` fit).
 
 ---
 
 ## Design principles
 
 - **Local-first & private** — everything lives in a local SQLite database and a
-  managed image folder on the researcher's machine.
+  managed image folder on the researcher's machine. The only network feature is the
+  optional AI assistant, which is off by default and explicit about what it sends.
 - **Honest by default** — no fabricated data, honest empty states, and clear
   loading/error handling everywhere.
 - **Archive, don't delete** — finished work is archived (reversible); deletion is the
@@ -92,6 +121,13 @@ Key libraries: `pdf-lib` (PDF reports, with **embedded images**) and `docx`
 charts); `papaparse` (CSV); `lucide-react` (icons); and self-hosted **Inter** /
 **JetBrains Mono** variable fonts (`@fontsource-variable/*`) for on-screen
 readability — all bundled locally, so nothing is fetched from a CDN at runtime.
+
+The optional AI assistant calls **Google Gemini** or **Groq** (your choice) through a
+narrow Rust command (`reqwest`), so the API key never enters the webview or the bundle
+and the request bypasses the webview CSP; the key is stored in the OS credential store
+(`keyring`). The assistant sits behind a provider port, so the backend can be swapped
+(another provider, a backend proxy, or a local model) without changing the agent loop
+or its tools.
 
 ## Getting started
 

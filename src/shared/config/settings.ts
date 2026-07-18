@@ -4,6 +4,7 @@
  * import these without pulling in the provider.
  */
 import type { ExportFormat } from "@/application/export/export-types";
+import type { AiProvider } from "@/application/ai/ai-types";
 
 export const ACCENT_COLORS = ["teal", "blue", "violet", "rose", "amber"] as const;
 export type AccentColor = (typeof ACCENT_COLORS)[number];
@@ -100,6 +101,13 @@ export interface AppSettings {
   exportInstitution: string;
   /** Add a header/footer band with page numbering to reports. */
   exportHeaderFooter: boolean;
+  // --- AI assistant (v2.6) ---
+  /** Enable the optional in-app AI assistant. Off by default; desktop only. */
+  aiAssistantEnabled: boolean;
+  /** Which model provider the assistant uses. */
+  aiProvider: AiProvider;
+  /** Model id the assistant uses (interpreted per provider). */
+  aiModel: string;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -129,6 +137,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   exportCoverPage: false,
   exportInstitution: "",
   exportHeaderFooter: false,
+  aiAssistantEnabled: false,
+  aiProvider: "gemini",
+  aiModel: "gemini-flash-latest",
 };
 
 export const SETTINGS_STORAGE_KEY = "als.settings";
